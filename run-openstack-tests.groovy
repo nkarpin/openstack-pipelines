@@ -35,7 +35,7 @@ test = new com.mirantis.mk.Test()
 // Define global variables
 def saltMaster
 
-node("python") {
+node('python') {
     try {
 
         stage ('Connect to salt master') {
@@ -45,7 +45,7 @@ node("python") {
 
         def log_dir = "/home/rally/rally_reports/${OPENSTACK_COMPONENT}"
         def reports_dir = "/root/rally_reports/${OPENSTACK_COMPONENT}"
-        def date = sh(script: "date +%Y-%m-%d", returnStdout: true).trim()
+        def date = sh(script: 'date +%Y-%m-%d', returnStdout: true).trim()
 
         if (common.checkContains('TEST_DOCKER_INSTALL', 'true')) {
             test.install_docker(saltMaster, TEST_TEMPEST_TARGET)
@@ -74,7 +74,7 @@ node("python") {
             ])
         }
 
-    } catch (Throwable e) {
+    } catch (Exception e) {
         currentBuild.result = 'FAILURE'
         throw e
     }

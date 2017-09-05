@@ -27,23 +27,23 @@
 common = new com.mirantis.mk.Common()
 test = new com.mirantis.mk.Test()
 
-node("docker") {
+node('docker') {
     try {
-        testOutputDir = sh(script: "mktemp -d", returnStdout: true).trim()
+        testOutputDir = sh(script: 'mktemp -d', returnStdout: true).trim()
 
         //TODO: Implement support for stepler run artifacts
         stage('Get tests artifacts') {
-            selector = [$class: 'SpecificBuildSelector', buildNumber: "${TARGET_BUILD_NUMBER}"];
+            selector = [$class: 'SpecificBuildSelector', buildNumber: "${TARGET_BUILD_NUMBER}"]
 
             step ([$class: 'CopyArtifact',
                    projectName: TARGET_JOB,
                    selector: selector,
                    filter: '_artifacts/rally_reports.tar',
                    target: testOutputDir,
-                   flatten: true]);
+                   flatten: true,])
 
             dir(testOutputDir) {
-                sh("tar -xf rally_reports.tar")
+                sh('tar -xf rally_reports.tar')
             }
         }
 
@@ -82,13 +82,13 @@ node("docker") {
                         """
             println test_info
 
-            pr = (passed/tests)*100
+            pr = (passed / tests) * 100
 
             if (pr < TEST_PASS_THRESHOLD.toInteger() && FAIL_ON_TESTS){
                 error("${failed} TEMPEST TESTS HAVE FAILED")
             }
         }
-    } catch (Throwable e) {
+    } catch (Exception e) {
         currentBuild.result = 'FAILURE'
         throw e
     } finally {

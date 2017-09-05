@@ -36,7 +36,7 @@
 def common = new com.mirantis.mk.Common()
 def gerrit = new com.mirantis.mk.Gerrit()
 
-node("python") {
+node('python') {
     try {
 
         if (GERRIT_CHECK == true) {
@@ -98,7 +98,7 @@ node("python") {
                 [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: true]
             ])
         }
-    } catch (Throwable e) {
+    } catch (Exception e) {
         currentBuild.result = 'FAILURE'
         throw e
     } finally {
