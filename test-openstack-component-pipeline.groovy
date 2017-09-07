@@ -8,8 +8,11 @@
  *    (or set of all tests).
  *
  * Flow parameters:
- *   GERRIT_CREDENTIALS                ID of gerrit credentials
- *   GERRIT_CHECK                      Is this build is triggered by gerrit
+ *   EXTRA_REPO                        Repository with additional packages
+ *   EXTRA_REPO_PIN                    Pin string for extra repo - eg "origin hostname.local"
+ *   EXTRA_REPO_PRIORITY               Repo priority
+ *   GERRIT_PROJECT                    Project being tested by gerrit trigger
+ *   REVIEW_NAMESPACE                  Path to Gerrit review artifacts
  *   HEAT_STACK_ZONE                   VM availability zone
  *   OPENSTACK_COMPONENT               Openstack component to test
  *   OPENSTACK_VERSION                 Version of Openstack being tested
@@ -34,19 +37,58 @@
  *
  **/
 def common = new com.mirantis.mk.Common()
-def gerrit = new com.mirantis.mk.Gerrit()
+def artifactoryServer = Artifactory.server('mcp-ci')
+def artifactoryUrl = artifactoryServer.getUrl()
 
 node('python') {
     try {
-
-        if (GERRIT_CHECK == true) {
-            //TODO: implement injection of repository with component's package into build
-            cred = common.getCredentials(GERRIT_CREDENTIALS, 'key')
-            gerritChange = gerrit.getGerritChange(cred.username, GERRIT_HOST, GERRIT_CHANGE_NUMBER, GERRIT_CREDENTIALS, true)
+        if (GERRIT_PROJECT) {
+            project = "${GERRIT_PROJECT}".tokenize('/')[2]
+            pkgReviewNameSpace = REVIEW_NAMESPACE ?: "binary-dev-local/pkg-review/${GERRIT_CHANGE_NUMBER}"
+            //currently artifactory CR repositories  aren't signed - related bug PROD-14585
+            extra_repo = "deb [ arch=amd64 trusted=yes ] ${artifactoryUrl}/${pkgReviewNameSpace} /"
             testrail = false
         } else {
             //TODO: in case of not Gerrit triggered build - run previous build cleanup
+            project = OPENSTACK_COMPONENT
+            extra_repo = EXTRA_REPO
             testrail = true
+        }
+
+        // Choose tests set to run
+        if (TEST_TEMPEST_PATTERN) {
+            test_tempest_pattern = TEST_TEMPEST_PATTERN
+        } else {
+            pattern_file = "${env.JENKINS_HOME}/workspace/${env.JOB_NAME}@script/project_tests.yaml"
+            common.infoMsg("Reading test patterns from ${pattern_file}")
+            pattern_map = readYaml file: "${pattern_file}"
+
+            // by default try to read patterns from file
+            if (pattern_map.containsKey(project)) {
+               test_tempest_pattern = pattern_map[project]
+            } else {
+                common.infoMsg("Project ${project} not found in test patterns file, only smoke tests will be launched")
+            }
+        }
+
+        salt_overrides_list = SALT_OVERRIDES.tokenize('\n')
+
+        // Setting extra repo
+        if (extra_repo) {
+            // by default pin to fqdn of extra repo host
+            extra_repo_pin = EXTRA_REPO_PIN ?: "origin ${extra_repo.tokenize('/')[1]}"
+            extra_repo_priority = EXTRA_REPO_PRIORITY ?: '1200'
+            extra_repo_params = ["linux_system_repo: ${extra_repo}",
+                                 "linux_system_repo_priority: ${extra_repo_priority}",
+                                 "linux_system_repo_pin: ${extra_repo_pin}",]
+            for (item in extra_repo_params) {
+               salt_overrides_list.add(item)
+            }
+        }
+
+        if (salt_overrides_list) {
+            salt_overrides = salt_overrides_list.join('\n')
+            common.infoMsg("Next salt model parameters will be overriden:\n${salt_overrides}")
         }
 
         stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}"
@@ -60,7 +102,7 @@ node('python') {
                 [$class: 'StringParameterValue', name: 'STACK_TEST', value: ''],
                 [$class: 'StringParameterValue', name: 'STACK_TYPE', value: STACK_TYPE],
                 [$class: 'BooleanParameterValue', name: 'STACK_DELETE', value: false],
-                [$class: 'TextParameterValue', name: 'SALT_OVERRIDES', value: SALT_OVERRIDES]
+                [$class: 'TextParameterValue', name: 'SALT_OVERRIDES', value: salt_overrides],
             ])
         }
 
@@ -79,24 +121,26 @@ node('python') {
                 [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: false],
                 [$class: 'StringParameterValue', name: 'OPENSTACK_COMPONENT', value: 'smoke'],
                 [$class: 'StringParameterValue', name: 'TEST_PASS_THRESHOLD', value: '0'],
-                [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: true]
+                [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: true],
             ])
         }
 
         // Perform component specific tests
-        stage("Run ${OPENSTACK_COMPONENT} tests") {
-            build(job: STACK_TEST_JOB, parameters: [
-                [$class: 'StringParameterValue', name: 'SALT_MASTER_URL', value: SALT_MASTER_URL],
-                [$class: 'StringParameterValue', name: 'TEST_TEMPEST_TARGET', value: TEST_TEMPEST_TARGET],
-                [$class: 'StringParameterValue', name: 'TEST_TEMPEST_PATTERN', value: TEST_TEMPEST_PATTERN],
-                [$class: 'StringParameterValue', name: 'TEST_MILESTONE', value: TEST_MILESTONE],
-                [$class: 'StringParameterValue', name: 'TEST_MODEL', value: TEST_MODEL],
-                [$class: 'StringParameterValue', name: 'OPENSTACK_VERSION', value: OPENSTACK_VERSION],
-                [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: testrail.toBoolean()],
-                [$class: 'StringParameterValue', name: 'OPENSTACK_COMPONENT', value: OPENSTACK_COMPONENT],
-                [$class: 'StringParameterValue', name: 'TEST_PASS_THRESHOLD', value: TEST_PASS_THRESHOLD],
-                [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: true]
-            ])
+        if (test_tempest_pattern) {
+            stage("Run ${project} tests") {
+                build(job: STACK_TEST_JOB, parameters: [
+                    [$class: 'StringParameterValue', name: 'SALT_MASTER_URL', value: SALT_MASTER_URL],
+                    [$class: 'StringParameterValue', name: 'TEST_TEMPEST_TARGET', value: TEST_TEMPEST_TARGET],
+                    [$class: 'StringParameterValue', name: 'TEST_TEMPEST_PATTERN', value: test_tempest_pattern],
+                    [$class: 'StringParameterValue', name: 'TEST_MILESTONE', value: TEST_MILESTONE],
+                    [$class: 'StringParameterValue', name: 'TEST_MODEL', value: TEST_MODEL],
+                    [$class: 'StringParameterValue', name: 'OPENSTACK_VERSION', value: OPENSTACK_VERSION],
+                    [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: testrail.toBoolean()],
+                    [$class: 'StringParameterValue', name: 'OPENSTACK_COMPONENT', value: project],
+                    [$class: 'StringParameterValue', name: 'TEST_PASS_THRESHOLD', value: TEST_PASS_THRESHOLD],
+                    [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: true],
+                ])
+            }
         }
     } catch (Exception e) {
         currentBuild.result = 'FAILURE'
@@ -119,7 +163,7 @@ node('python') {
                     [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT_ID', value: OPENSTACK_API_PROJECT_ID],
                     [$class: 'StringParameterValue', name: 'OPENSTACK_API_USER_DOMAIN', value: OPENSTACK_API_USER_DOMAIN],
                     [$class: 'StringParameterValue', name: 'OPENSTACK_API_CLIENT', value: OPENSTACK_API_CLIENT],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_VERSION', value: OPENSTACK_API_VERSION]
+                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_VERSION', value: OPENSTACK_API_VERSION],
                 ])
             }
         }
