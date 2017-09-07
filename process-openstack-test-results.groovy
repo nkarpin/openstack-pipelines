@@ -82,10 +82,10 @@ node('docker') {
                         """
             println test_info
 
-            pr = (passed / tests) * 100
+            pr = (passed / (tests - skipped)) * 100
 
             if (pr < TEST_PASS_THRESHOLD.toInteger() && FAIL_ON_TESTS){
-                error("${failed} TEMPEST TESTS HAVE FAILED")
+                error("ONLY ${pr}% OF TEMPEST TESTS HAVE PASSED")
             }
         }
     } catch (Exception e) {
