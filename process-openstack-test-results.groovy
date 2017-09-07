@@ -28,12 +28,13 @@ common = new com.mirantis.mk.Common()
 test = new com.mirantis.mk.Test()
 
 node('docker') {
-    try {
-        testOutputDir = sh(script: 'mktemp -d', returnStdout: true).trim()
 
+    def testOutputDir = sh(script: 'mktemp -d', returnStdout: true).trim()
+
+    try {
         //TODO: Implement support for stepler run artifacts
         stage('Get tests artifacts') {
-            selector = [$class: 'SpecificBuildSelector', buildNumber: "${TARGET_BUILD_NUMBER}"]
+            def selector = [$class: 'SpecificBuildSelector', buildNumber: "${TARGET_BUILD_NUMBER}"]
 
             step ([$class: 'CopyArtifact',
                    projectName: TARGET_JOB,
@@ -47,9 +48,9 @@ node('docker') {
             }
         }
 
-        report = sh(script: "find ${testOutputDir} -name *.xml", returnStdout: true).trim()
+        def report = sh(script: "find ${testOutputDir} -name *.xml", returnStdout: true).trim()
 
-        if (TESTRAIL.toBoolean() == true) {
+        if (common.validInputParam('TESTRAIL') && TESTRAIL.toBoolean()) {
             stage('Upload tests results to Testrail'){
 
                 def plan = TEST_PLAN ?: "${TEST_MILESTONE}-OSCORE-${TEST_DATE}"
@@ -65,27 +66,27 @@ node('docker') {
 
         //TODO: use xunit publisher plugin to publish results
         stage('Check tests results'){
-            fileContents = new File(report)
-            parsed = new XmlParser().parse(fileContents)
-            res = parsed['testsuite'][0].attributes()
+            def fileContents = new File(report)
+            def parsed = new XmlParser().parse(fileContents)
+            def res = parsed['testsuite'][0].attributes()
 
-            failed = res.failures.toInteger()
-            tests = res.tests.toInteger()
-            skipped = res.skipped.toInteger()
-            passed = tests - failed - skipped
+            def failed = res.failures.toInteger()
+            def tests = res.tests.toInteger()
+            def skipped = res.skipped.toInteger()
+            def passed = tests - failed - skipped
 
-            test_info = """
-                        Failed:  ${res.failures}
-                        Errors:  ${res.errors}
-                        Skipped: ${res.skipped}
-                        Tests:   ${res.tests}
-                        """
-            println test_info
+            def pr = (passed / (tests - skipped)) * 100
 
-            pr = (passed / (tests - skipped)) * 100
+            println("""\
+                    Failed:  ${res.failures}
+                    Errors:  ${res.errors}
+                    Skipped: ${res.skipped}
+                    Tests:   ${res.tests}
+                    TESTS PASS RATE: ${pr}%
+                    """)
 
-            if (pr < TEST_PASS_THRESHOLD.toInteger() && FAIL_ON_TESTS){
-                error("ONLY ${pr}% OF TEMPEST TESTS HAVE PASSED")
+            if (pr < TEST_PASS_THRESHOLD.toInteger() && FAIL_ON_TESTS.toBoolean()){
+                error("Pass rate ${pr}% is lower than pass threshold ${TEST_PASS_THRESHOLD}%")
             }
         }
     } catch (Exception e) {
