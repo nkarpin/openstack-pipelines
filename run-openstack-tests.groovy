@@ -19,7 +19,7 @@
  *   TESTRAIL                     Whether upload results to testrail or not
  *   TEST_MILESTONE               Product version for tests
  *   TEST_MODEL                   Salt model used in environment
- *   OPENSTACK_COMPONENT          Name of openstack component being tested
+ *   PROJECT                      Name of project being tested
  *   OPENSTACK_VERSION            Version of Openstack being tested
  *   PROC_RESULTS_JOB             Name of job for test results processing
  *   FAIL_ON_TESTS                Whether to fail build on tests failures or not
@@ -36,16 +36,30 @@ test = new com.mirantis.mk.Test()
 def saltMaster
 
 node('python') {
+
+    def log_dir = "/home/rally/rally_reports/${PROJECT}"
+    def reports_dir = "/root/rally_reports/${PROJECT}"
+    def date = sh(script: 'date +%Y-%m-%d', returnStdout: true).trim()
+    def testrail = false
+    def test_milestone = ''
+    def test_model = ''
+
     try {
+
+        if (common.validInputParam('TESTRAIL') && TESTRAIL.toBoolean()) {
+            testrail = true
+            if (common.validInputParam('TEST_MILESTONE') && common.validInputParam('TEST_MODEL')) {
+                test_milestone = TEST_MILESTONE
+                test_model = TEST_MODEL
+            } else {
+                error('WHEN UPLOADING RESULTS TO TESTRAIL TEST_MILESTONE AND TEST_MODEL MUST BE SET')
+            }
+        }
 
         stage ('Connect to salt master') {
             // Connect to Salt master
             saltMaster = salt.connection(SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
         }
-
-        def log_dir = "/home/rally/rally_reports/${OPENSTACK_COMPONENT}"
-        def reports_dir = "/root/rally_reports/${OPENSTACK_COMPONENT}"
-        def date = sh(script: 'date +%Y-%m-%d', returnStdout: true).trim()
 
         if (common.checkContains('TEST_DOCKER_INSTALL', 'true')) {
             test.install_docker(saltMaster, TEST_TEMPEST_TARGET)
@@ -64,9 +78,9 @@ node('python') {
             build(job: PROC_RESULTS_JOB, parameters: [
                 [$class: 'StringParameterValue', name: 'TARGET_JOB', value: "${env.JOB_NAME}"],
                 [$class: 'StringParameterValue', name: 'TARGET_BUILD_NUMBER', value: "${env.BUILD_NUMBER}"],
-                [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: TESTRAIL.toBoolean()],
-                [$class: 'StringParameterValue', name: 'TEST_MILESTONE', value: TEST_MILESTONE],
-                [$class: 'StringParameterValue', name: 'TEST_MODEL', value: TEST_MODEL],
+                [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: testrail.toBoolean()],
+                [$class: 'StringParameterValue', name: 'TEST_MILESTONE', value: test_milestone],
+                [$class: 'StringParameterValue', name: 'TEST_MODEL', value: test_model],
                 [$class: 'StringParameterValue', name: 'OPENSTACK_VERSION', value: OPENSTACK_VERSION],
                 [$class: 'StringParameterValue', name: 'TEST_DATE', value: date],
                 [$class: 'StringParameterValue', name: 'TEST_PASS_THRESHOLD', value: TEST_PASS_THRESHOLD],
