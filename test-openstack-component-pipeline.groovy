@@ -91,7 +91,7 @@ node('python') {
             common.infoMsg("Next salt model parameters will be overriden:\n${salt_overrides}")
         }
 
-        stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}"
+        stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}-systest"
 
         // Deploy MCP environment
         stage('Trigger deploy job') {
