@@ -35,7 +35,7 @@ test = new com.mirantis.mk.Test()
 // Define global variables
 def saltMaster
 
-node('python') {
+node ("${SLAVE_NODE}") {
     try {
 
         stage ('Connect to salt master') {
