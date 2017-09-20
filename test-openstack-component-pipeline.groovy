@@ -48,7 +48,7 @@ node('python') {
     def testrail = false
     def test_milestone = ''
     def test_tempest_pattern = TEST_TEMPEST_PATTERN
-    def stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}"
+    def stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}-debug"
     def deployBuild
     def deployBuildParams
     def salt_master_url
