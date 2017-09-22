@@ -65,6 +65,9 @@ node('python') {
             test.install_docker(saltMaster, TEST_TEMPEST_TARGET)
         }
 
+        // Create reports directory
+        salt.cmdRun(saltMaster, TEST_TEMPEST_TARGET, "mkdir -p ${reports_dir}")
+
         // TODO: implement stepler testing from this pipeline
         stage('Run OpenStack tests') {
             test.runTempestTests(saltMaster, TEST_TEMPEST_IMAGE, TEST_TEMPEST_TARGET, TEST_TEMPEST_PATTERN, log_dir)
