@@ -50,7 +50,6 @@ node('python') {
     def test_tempest_pattern = TEST_TEMPEST_PATTERN
     def stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}"
     def deployBuild
-    def deployBuildParams
     def salt_master_url
     def stack_name
 
@@ -101,7 +100,7 @@ node('python') {
 
         // Deploy MCP environment
         stage('Trigger deploy job') {
-            deployBuild = build(job: stack_deploy_job, parameters: [
+            deployBuild = build(job: stack_deploy_job, propagate: false, parameters: [
                 [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT', value: OPENSTACK_API_PROJECT],
                 [$class: 'StringParameterValue', name: 'HEAT_STACK_ZONE', value: HEAT_STACK_ZONE],
                 [$class: 'StringParameterValue', name: 'STACK_INSTALL', value: STACK_INSTALL],
@@ -110,12 +109,18 @@ node('python') {
                 [$class: 'BooleanParameterValue', name: 'STACK_DELETE', value: false],
                 [$class: 'TextParameterValue', name: 'SALT_OVERRIDES', value: salt_overrides_list.join('\n')],
             ])
+
+            // Try to set stack name for stack cleanup job
+            if (deployBuild.description) {
+                stack_name = deployBuild.description.tokenize(' ')[0]
+            }
+            if (deployBuild.result != 'SUCCESS'){
+                error("Deployment failed, please check ${deployBuild.absoluteUrl}")
+            }
         }
 
         // get salt master url
-        deployBuildParams = deployBuild.description.tokenize( ' ' )
-        salt_master_url = "http://${deployBuildParams[1]}:6969"
-        stack_name = "${deployBuildParams[0]}"
+        salt_master_url = "http://${deployBuild.description.tokenize(' ')[1]}:6969"
         common.infoMsg("Salt API is accessible via ${salt_master_url}")
 
         // Perform smoke tests to fail early
@@ -157,20 +162,24 @@ node('python') {
         // Clean
         //
         if (common.validInputParam('STACK_DELETE') && STACK_DELETE.toBoolean() == true) {
-            stage('Trigger cleanup job') {
-                common.errorMsg('Stack cleanup job triggered')
-                build(job: STACK_CLEANUP_JOB, parameters: [
-                    [$class: 'StringParameterValue', name: 'STACK_NAME', value: stack_name],
-                    [$class: 'StringParameterValue', name: 'STACK_TYPE', value: STACK_TYPE],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_URL', value: OPENSTACK_API_URL],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_CREDENTIALS', value: OPENSTACK_API_CREDENTIALS],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT', value: OPENSTACK_API_PROJECT],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT_DOMAIN', value: OPENSTACK_API_PROJECT_DOMAIN],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT_ID', value: OPENSTACK_API_PROJECT_ID],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_USER_DOMAIN', value: OPENSTACK_API_USER_DOMAIN],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_CLIENT', value: OPENSTACK_API_CLIENT],
-                    [$class: 'StringParameterValue', name: 'OPENSTACK_API_VERSION', value: OPENSTACK_API_VERSION],
-                ])
+            if (stack_name) {
+                stage('Trigger cleanup job') {
+                    common.errorMsg('Stack cleanup job triggered')
+                    build(job: STACK_CLEANUP_JOB, parameters: [
+                        [$class: 'StringParameterValue', name: 'STACK_NAME', value: stack_name],
+                        [$class: 'StringParameterValue', name: 'STACK_TYPE', value: STACK_TYPE],
+                        [$class: 'StringParameterValue', name: 'OPENSTACK_API_URL', value: OPENSTACK_API_URL],
+                        [$class: 'StringParameterValue', name: 'OPENSTACK_API_CREDENTIALS', value: OPENSTACK_API_CREDENTIALS],
+                        [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT', value: OPENSTACK_API_PROJECT],
+                        [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT_DOMAIN', value: OPENSTACK_API_PROJECT_DOMAIN],
+                        [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT_ID', value: OPENSTACK_API_PROJECT_ID],
+                        [$class: 'StringParameterValue', name: 'OPENSTACK_API_USER_DOMAIN', value: OPENSTACK_API_USER_DOMAIN],
+                        [$class: 'StringParameterValue', name: 'OPENSTACK_API_CLIENT', value: OPENSTACK_API_CLIENT],
+                        [$class: 'StringParameterValue', name: 'OPENSTACK_API_VERSION', value: OPENSTACK_API_VERSION],
+                    ])
+                }
+            } else {
+                error('Stack name is undefined, cannot cleanup')
             }
         }
     }
