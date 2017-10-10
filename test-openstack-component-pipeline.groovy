@@ -12,6 +12,7 @@
  *   EXTRA_REPO_PIN                    Pin string for extra repo - eg "origin hostname.local"
  *   EXTRA_REPO_PRIORITY               Repo priority
  *   FAIL_ON_TESTS                     Whether to fail build on tests failures or not
+ *   FORMULA_PKG_REVISION              Formulas release to deploy with (stable, testing or nightly)
  *   HEAT_STACK_ZONE                   VM availability zone
  *   OPENSTACK_VERSION                 Version of Openstack being tested
  *   OPENSTACK_API_URL                 OpenStack API address
@@ -53,6 +54,7 @@ node('python') {
     def deployBuildParams
     def salt_master_url
     def stack_name
+    def formula_pkg_revision = 'stable'
 
     try {
 
@@ -95,6 +97,10 @@ node('python') {
             }
         }
 
+        if (common.validInputParam('FORMULA_PKG_REVISION')) {
+            formula_pkg_revision = FORMULA_PKG_REVISION
+        }
+
         if (salt_overrides_list) {
             common.infoMsg("Next salt model parameters will be overriden:\n${salt_overrides_list.join('\n')}")
         }
@@ -107,6 +113,7 @@ node('python') {
                 [$class: 'StringParameterValue', name: 'STACK_INSTALL', value: STACK_INSTALL],
                 [$class: 'StringParameterValue', name: 'STACK_TEST', value: ''],
                 [$class: 'StringParameterValue', name: 'STACK_TYPE', value: STACK_TYPE],
+                [$class: 'StringParameterValue', name: 'FORMULA_PKG_REVISION', value: formula_pkg_revision],
                 [$class: 'BooleanParameterValue', name: 'STACK_DELETE', value: false],
                 [$class: 'TextParameterValue', name: 'SALT_OVERRIDES', value: salt_overrides_list.join('\n')],
             ])
