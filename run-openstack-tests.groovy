@@ -24,6 +24,7 @@
  *   PROC_RESULTS_JOB             Name of job for test results processing
  *   FAIL_ON_TESTS                Whether to fail build on tests failures or not
  *   TEST_PASS_THRESHOLD          Persent of passed tests to consider build successful
+ *   SLAVE_NODE                   Label or node name where the job will be run
  *
  */
 
@@ -31,11 +32,17 @@ common = new com.mirantis.mk.Common()
 git = new com.mirantis.mk.Git()
 salt = new com.mirantis.mk.Salt()
 test = new com.mirantis.mk.Test()
+python = new com.mirantis.mk.Python()
 
 // Define global variables
 def saltMaster
+def slave_node = 'python'
 
-node('python') {
+if (common.validInputParam('SLAVE_NODE')) {
+    slave_node = SLAVE_NODE
+}
+
+node(slave_node) {
 
     def log_dir = "/home/rally/rally_reports/${PROJECT}"
     def reports_dir = "/root/rally_reports/${PROJECT}"
@@ -43,6 +50,7 @@ node('python') {
     def testrail = false
     def test_milestone = ''
     def test_model = ''
+    def venv = "${env.WORKSPACE}/venv"
 
     try {
 
@@ -57,8 +65,8 @@ node('python') {
         }
 
         stage ('Connect to salt master') {
-            // Connect to Salt master
-            saltMaster = salt.connection(SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
+            python.setupPepperVirtualenv(venv, SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
+            saltMaster = "${venv}"
         }
 
         if (common.checkContains('TEST_DOCKER_INSTALL', 'true')) {

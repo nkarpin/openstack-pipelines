@@ -78,6 +78,7 @@ ruleset {
     exclude 'NestedBlockDepth'
     // Not necessarily an issue
     exclude 'ParameterCount'
+    exclude 'CyclomaticComplexity'
   }
   ruleset('rulesets/unnecessary.xml'){
     // Don't need due to code readablilty
