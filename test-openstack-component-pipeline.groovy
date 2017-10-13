@@ -117,10 +117,6 @@ node('python') {
                 [$class: 'TextParameterValue', name: 'SALT_OVERRIDES', value: salt_overrides_list.join('\n')],
             ])
 
-            // Try to set stack name for stack cleanup job
-            if (deployBuild.description) {
-                stack_name = deployBuild.description.tokenize(' ')[0]
-            }
             if (deployBuild.result != 'SUCCESS'){
                 error("Deployment failed, please check ${deployBuild.absoluteUrl}")
             }
@@ -169,7 +165,9 @@ node('python') {
         // Clean
         //
         if (common.validInputParam('STACK_DELETE') && STACK_DELETE.toBoolean() == true) {
-            if (stack_name) {
+            if (deployBuild.description) {
+                // Try to set stack name
+                stack_name = deployBuild.description.tokenize(' ')[0]
                 stage('Trigger cleanup job') {
                     common.errorMsg('Stack cleanup job triggered')
                     build(job: STACK_CLEANUP_JOB, parameters: [
@@ -186,7 +184,7 @@ node('python') {
                     ])
                 }
             } else {
-                error('Stack name is undefined, cannot cleanup')
+                error('Unable to get stack name, cannot cleanup')
             }
         }
     }
