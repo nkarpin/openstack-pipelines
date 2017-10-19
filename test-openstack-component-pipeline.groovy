@@ -41,6 +41,21 @@ def artifactoryServer = Artifactory.server('mcp-ci')
 def artifactoryUrl = artifactoryServer.getUrl()
 def salt_overrides_list = SALT_OVERRIDES.tokenize('\n')
 
+def get_test_pattern(project) {
+    def pattern_map = ['cinder': 'volume',
+                       'barbican': 'barbican_tempest_plugin',
+                       'designate': 'designate_tempest_plugin',
+                       'glance': 'image',
+                       'heat': 'orchestration',
+                       'ironic': 'ironic_tempest_plugin',
+                       'keystone': 'identity',
+                       'nova': 'compute',
+                       'neutron': 'network',]
+    if (pattern_map.containsKey(project)) {
+        return pattern_map[project]
+    }
+}
+
 node('python') {
 
     def project = PROJECT
@@ -48,7 +63,7 @@ node('python') {
     def extra_repo = EXTRA_REPO
     def testrail = true
     def test_milestone = ''
-    def test_tempest_pattern = TEST_TEMPEST_PATTERN
+    def test_tempest_pattern = TEST_TEMPEST_PATTERN ?: get_test_pattern(project)
     def stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}"
     def deployBuild
     def salt_master_url
@@ -66,20 +81,6 @@ node('python') {
         } else {
             if (common.validInputParam('TEST_MILESTONE')) {
                 test_milestone = TEST_MILESTONE
-            }
-        }
-
-        // Choose tests set to run
-        if (test_tempest_pattern == '') {
-            def pattern_file = "${env.JENKINS_HOME}/workspace/${env.JOB_NAME}@script/test_patterns.yaml"
-            common.infoMsg("Reading test patterns from ${pattern_file}")
-            def pattern_map = readYaml file: "${pattern_file}"
-
-            // by default try to read patterns from file
-            if (pattern_map.containsKey(project)) {
-               test_tempest_pattern = pattern_map[project]
-            } else {
-                common.infoMsg("Project ${project} not found in test patterns file, only smoke tests will be launched")
             }
         }
 
