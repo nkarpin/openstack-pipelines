@@ -66,8 +66,8 @@ node('docker') {
 
         //TODO: use xunit publisher plugin to publish results
         stage('Check tests results'){
-            def fileContents = new File(report)
-            def parsed = new XmlParser().parse(fileContents)
+            def fileContents = sh(script: "cat ${report}", returnStdout: true).trim()
+            def parsed = new XmlParser().parseText(fileContents)
             def res = parsed['testsuite'][0].attributes()
 
             def failed = res.failures.toInteger()
