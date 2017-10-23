@@ -63,7 +63,6 @@ node('python') {
     def extra_repo = EXTRA_REPO
     def testrail = true
     def test_milestone = ''
-    def test_tempest_pattern = TEST_TEMPEST_PATTERN ?: get_test_pattern(project)
     def stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}"
     def deployBuild
     def salt_master_url
@@ -73,16 +72,26 @@ node('python') {
     try {
 
         if (common.validInputParam('GERRIT_PROJECT')) {
-            project = "${GERRIT_PROJECT}".tokenize('/')[2]
-            pkgReviewNameSpace = "binary-dev-local/pkg-review/${GERRIT_CHANGE_NUMBER}"
-            //currently artifactory CR repositories  aren't signed - related bug PROD-14585
-            extra_repo = "deb [ arch=amd64 trusted=yes ] ${artifactoryUrl}/${pkgReviewNameSpace} /"
+            // mcp/ocata and mcp/newton are hosted on review.fuel-infra.org
+            if ((GERRIT_HOST == 'review.fuel-infra.org') && (GERRIT_BRANCH ==~ /mcp\/(newton|ocata)/)){
+                project = GERRIT_PROJECT.tokenize('/')[1]
+                pkgReviewNameSpace = "review/CR-${GERRIT_CHANGE_NUMBER}/mcp-repos/${OPENSTACK_VERSION}/xenial/"
+                extra_repo = "deb [ arch=amd64 trusted=yes ] http://perestroika-repo-tst.infra.mirantis.net/${pkgReviewNameSpace} ${OPENSTACK_VERSION} main"
+            } else {
+                project = GERRIT_PROJECT.tokenize('/')[2]
+                pkgReviewNameSpace = "binary-dev-local/pkg-review/${GERRIT_CHANGE_NUMBER}"
+                //currently artifactory CR repositories  aren't signed - related bug PROD-14585
+                extra_repo = "deb [ arch=amd64 trusted=yes ] ${artifactoryUrl}/${pkgReviewNameSpace} /"
+            }
             testrail = false
         } else {
             if (common.validInputParam('TEST_MILESTONE')) {
                 test_milestone = TEST_MILESTONE
             }
         }
+
+        // setting pattern to run tests
+        def test_tempest_pattern = TEST_TEMPEST_PATTERN ?: get_test_pattern(project)
 
         // Setting extra repo
         if (extra_repo) {
@@ -146,7 +155,7 @@ node('python') {
 
         // Perform project specific tests
         if (test_tempest_pattern) {
-            stage("Run ${project} tests") {
+            stage("Run ${test_tempest_pattern} tests") {
                 build(job: STACK_TEST_JOB, parameters: [
                     [$class: 'StringParameterValue', name: 'SALT_MASTER_URL', value: salt_master_url],
                     [$class: 'StringParameterValue', name: 'TEST_TEMPEST_TARGET', value: TEST_TEMPEST_TARGET],
