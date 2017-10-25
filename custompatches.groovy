@@ -210,8 +210,8 @@ node('python') {
                 }
                 def topic = "custom/patches/${newBranch}"
                 uploadPatchToReview(repo, v, NEW_BRANCH, topic, GERRIT_CREDENTIALS)
-
-             custom_commits_info.add(getCommitInfo(repo, v))
+            }
+            custom_commits_info.add(getCommitInfo(repo, v))
         }
 
         if (custom_commits_info) {
