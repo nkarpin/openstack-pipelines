@@ -197,6 +197,8 @@ node('python') {
 
     stage ('Processing custom patches'){
         def custom_patches = getCustomPatches(repo, "origin/${OLD_BRANCH}", "target/${NEW_BRANCH}")
+        def custom_commits_info=[]
+
         for (k in custom_patches.keySet()){
             def v = custom_patches[k]
 
@@ -208,9 +210,15 @@ node('python') {
                 }
                 def topic = "custom/patches/${newBranch}"
                 uploadPatchToReview(repo, v, NEW_BRANCH, topic, GERRIT_CREDENTIALS)
-            } else {
-                common.infoMsg(getCommitInfo(repo, v))
-            }
+
+             custom_commits_info.add(getCommitInfo(repo, v))
+        }
+
+        if (custom_commits_info) {
+            common.infoMsg("The custom patches between ${OLD_BRANCH} and ${NEW_BRANCH} are:")
+            common.infoMsg(custom_commits_info.join('\n'))
+        } else {
+            common.infoMsg("No custom patches between ${OLD_BRANCH} and ${NEW_BRANCH} found.")
         }
     }
 }
