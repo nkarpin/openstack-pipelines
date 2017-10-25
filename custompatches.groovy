@@ -208,7 +208,7 @@ node('python') {
                     sh(script: "git checkout ${v}")
                     sh(script: 'git commit --amend --no-edit')
                 }
-                def topic = "custom/patches/${newBranch}"
+                def topic = "custom/patches/${NEW_BRANCH}"
                 uploadPatchToReview(repo, v, NEW_BRANCH, topic, GERRIT_CREDENTIALS)
             }
             custom_commits_info.add(getCommitInfo(repo, v))
