@@ -40,6 +40,8 @@ common = new com.mirantis.mk.Common()
 def artifactoryServer = Artifactory.server('mcp-ci')
 def artifactoryUrl = artifactoryServer.getUrl()
 def salt_overrides_list = SALT_OVERRIDES.tokenize('\n')
+def build_disabled = 'disable-deploy-test'
+def build_result = 'FAILURE'
 
 def get_test_pattern(project) {
     def pattern_map = ['cinder': 'volume',
@@ -72,6 +74,12 @@ node('python') {
     try {
 
         if (common.validInputParam('GERRIT_PROJECT')) {
+            // TODO: use decodeBase64 method and check if the string should be decoded
+            def commit_message = sh(script: "echo ${GERRIT_CHANGE_COMMIT_MESSAGE} | base64 --decode", returnStdout: true).trim()
+            if (commit_message.contains(build_disabled)) {
+                build_result = 'NOT_BUILT'
+                error("Found ${build_disabled} in commit message, skipping tests.")
+            }
             // mcp/ocata and mcp/newton are hosted on review.fuel-infra.org
             if ((GERRIT_HOST == 'review.fuel-infra.org') && (GERRIT_BRANCH ==~ /mcp\/(newton|ocata)/)){
                 project = GERRIT_PROJECT.tokenize('/')[1]
@@ -171,7 +179,7 @@ node('python') {
             }
         }
     } catch (Exception e) {
-        currentBuild.result = 'FAILURE'
+        currentBuild.result = build_result
         throw e
     } finally {
 
