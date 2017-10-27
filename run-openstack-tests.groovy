@@ -16,6 +16,7 @@
  *   TEST_DOCKER_INSTALL          Install docker
  *   TEST_TEMPEST_TARGET          Salt target to run tempest on
  *   TEST_TEMPEST_PATTERN         Tempest tests pattern
+ *   TEST_TEMPEST_CONCURRENCY     How much tempest threads to run
  *   TESTRAIL                     Whether upload results to testrail or not
  *   TEST_MILESTONE               Product version for tests
  *   TEST_MODEL                   Salt model used in environment
@@ -51,6 +52,7 @@ node(slave_node) {
     def test_milestone = ''
     def test_model = ''
     def venv = "${env.WORKSPACE}/venv"
+    def test_tempest_concurrency = '0'
 
     try {
 
@@ -64,6 +66,10 @@ node(slave_node) {
             }
         }
 
+        if (common.validInputParam('TEST_TEMPEST_CONCURRENCY')) {
+            test_tempest_concurrency = TEST_TEMPEST_CONCURRENCY
+        }
+
         stage ('Connect to salt master') {
             python.setupPepperVirtualenv(venv, SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
             saltMaster = "${venv}"
@@ -75,7 +81,13 @@ node(slave_node) {
 
         // TODO: implement stepler testing from this pipeline
         stage('Run OpenStack tests') {
-            test.runTempestTests(saltMaster, TEST_TEMPEST_IMAGE, TEST_TEMPEST_TARGET, TEST_TEMPEST_PATTERN, log_dir)
+            test.runTempestTests(saltMaster, TEST_TEMPEST_IMAGE,
+                                             TEST_TEMPEST_TARGET,
+                                             TEST_TEMPEST_PATTERN,
+                                             log_dir,
+                                             '/home/rally/keystonercv3',
+                                             'full',
+                                             test_tempest_concurrency)
         }
 
         stage('Archive rally artifacts') {
