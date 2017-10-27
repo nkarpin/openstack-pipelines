@@ -174,9 +174,9 @@ def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null){
                 //ssh.runSshAgentCommand(push_cmd)
                 def out = runSshAgentCommandStatus(push_cmd)
                 if (out['status'] != 0){
-                    if ((out['stderr'] =~ /(?m).*no new changes.*/).asBoolean()){
+                    if (out['stderr'] =~ /(?m).*no new changes.*/){
                         common.infoMsg("No new changes in ${commit}, skipping...")
-                    } else if ((out['stderr'] ==~ /(?m).*change \d+ closed.*/).asBoolean()){
+                    } else if (out['stderr'] ==~ /(?m).*change \d+ closed.*/){
                         common.infoMsg("Change ${commit} is closed in Gerrit, skipping it...")
                     }
                 }
