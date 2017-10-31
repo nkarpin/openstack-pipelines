@@ -9,6 +9,7 @@
  *
  * Flow parameters:
  *   EXTRA_REPO                        Repository with additional packages
+ *   REPO_URL                          URL to temporary repository with tested packages
  *   EXTRA_REPO_PIN                    Pin string for extra repo - eg "origin hostname.local"
  *   EXTRA_REPO_PRIORITY               Repo priority
  *   FAIL_ON_TESTS                     Whether to fail build on tests failures or not
@@ -65,7 +66,6 @@ if (STACK_TYPE != 'heat' ) {
 
 node(slave_node) {
     def project = PROJECT
-    def pkgReviewNameSpace
     def extra_repo = EXTRA_REPO
     def testrail = true
     def test_milestone = ''
@@ -79,6 +79,8 @@ node(slave_node) {
     try {
 
         if (common.validInputParam('GERRIT_PROJECT')) {
+            def pkgReviewNameSpace
+            def repo_url
             // TODO: use decodeBase64 method and check if the string should be decoded
             def commit_message = sh(script: "echo ${GERRIT_CHANGE_COMMIT_MESSAGE} | base64 --decode", returnStdout: true).trim()
             if (commit_message.contains(build_disabled)) {
@@ -87,15 +89,18 @@ node(slave_node) {
             }
             // mcp/ocata and mcp/newton are hosted on review.fuel-infra.org
             if ((GERRIT_HOST == 'review.fuel-infra.org') && (GERRIT_BRANCH ==~ /mcp\/(newton|ocata)/)){
+                // get project from review.fuel-infra.org project (e.g. nova from openstack/nova)
                 project = GERRIT_PROJECT.tokenize('/')[1]
                 pkgReviewNameSpace = "review/CR-${GERRIT_CHANGE_NUMBER}/mcp-repos/${OPENSTACK_VERSION}/xenial/"
-                extra_repo = "deb [ arch=amd64 trusted=yes ] http://perestroika-repo-tst.infra.mirantis.net/${pkgReviewNameSpace} ${OPENSTACK_VERSION} main"
+                repo_url = "http://perestroika-repo-tst.infra.mirantis.net/${pkgReviewNameSpace} ${OPENSTACK_VERSION} main"
             } else {
+                // get project from mcp-gerrit project (e.g. nova from packaging/specs/nova)
                 project = GERRIT_PROJECT.tokenize('/')[2]
                 pkgReviewNameSpace = "binary-dev-local/pkg-review/${GERRIT_CHANGE_NUMBER}"
-                //currently artifactory CR repositories  aren't signed - related bug PROD-14585
-                extra_repo = "deb [ arch=amd64 trusted=yes ] ${artifactoryUrl}/${pkgReviewNameSpace} /"
+                repo_url = REPO_URL ?: "${artifactoryUrl}/${pkgReviewNameSpace} /"
             }
+            // currently artifactory CR repositories  aren't signed - related bug PROD-14585
+            extra_repo = "deb [ arch=amd64 trusted=yes ] ${repo_url}"
             testrail = false
         } else {
             if (common.validInputParam('TEST_MILESTONE')) {
