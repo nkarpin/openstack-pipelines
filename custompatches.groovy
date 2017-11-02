@@ -67,7 +67,7 @@ def getCustomPatches(repo, oldBranch, newBranch){
     def old_commits = getCommitsInfo(repo, common_ancestor, oldBranch)
     def new_commits = getCommitsInfo(repo, common_ancestor, newBranch)
 
-    # Remove all Change-Id present in both old_commits and new_commits
+    // Remove all Change-Id present in both old_commits and new_commits
     for (k in new_commits.keySet()){
         old_commits.remove(k)
     }
