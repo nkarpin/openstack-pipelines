@@ -166,7 +166,7 @@ def runSshAgentCommandStatus(cmd) {
  * @param topic           Name of topic to use
  * @param credentialsId   Jenkins credentials to use
  */
-def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null, gitEmail='mcp-ci-jenkins@ci.mcp.mirantis.net', gitName='jenkins-slave'){
+def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null){
     def common = new com.mirantis.mk.Common()
     common.infoMsg("Uploading patch ${commit} to review...")
     def pusharg = "${commit}:refs/for/${branch}"
@@ -175,8 +175,6 @@ def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null, gi
     }
     def push_cmd = "git push target ${pusharg}"
     dir(repo){
-        sh "git config --global user.email '${gitEmail}'"
-        sh "git config --global user.name '${gitName}'"
         if (credentialsId == null){
                 sh(script: push_cmd)
         } else {
@@ -213,6 +211,17 @@ node('python') {
     stage ('Processing custom patches'){
         def custom_patches = getCustomPatches(repo, "origin/${OLD_BRANCH}", "target/${NEW_BRANCH}")
         def custom_commits_info=[]
+
+        // Configure global email settings for user
+        if (common.validInputParam('DRY_RUN') && ! DRY_RUN.toBoolean()){
+            // TODO get params from jenkins credentials.
+            def gitEmail = 'mcp-ci-jenkins@ci.mcp.mirantis.net'
+            def gitName = 'jenkins-slave'
+            dir(repo){
+                sh "git config --global user.email '${gitEmail}'"
+                sh "git config --global user.name '${gitName}'"
+            }
+        }
 
         for (k in custom_patches.keySet()){
             def v = custom_patches[k]
