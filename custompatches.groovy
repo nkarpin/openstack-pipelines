@@ -189,7 +189,9 @@ def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null, gi
                     common.infoMsg("No new changes in ${commit}, skipping...")
                 } else if (out['stderr'] ==~ /(?m).*change \d+ closed.*/){
                     common.infoMsg("Change ${commit} is closed in Gerrit, skipping it...")
-                }
+                } else {
+                    common.errorMsg("Failed to push new commit ${out['stderr']}")
+              }
             }
         }
     }
@@ -217,12 +219,14 @@ node('python') {
 
             if (common.validInputParam('DRY_RUN') && ! DRY_RUN.toBoolean()){
                 common.infoMsg("Uploading patch ${v} to review")
+                def new_commit_id
                 dir(repo){
                     sh(script: "git checkout ${v}")
                     sh(script: 'git commit --amend --no-edit')
+                    new_commit_id = sh(script: 'git show HEAD', returnStdout: true).split( '\n' )[0].split()[1]
                 }
                 def topic = "custom/patches/${NEW_BRANCH}"
-                uploadPatchToReview(repo, v, NEW_BRANCH, topic, GERRIT_CREDENTIALS)
+                uploadPatchToReview(repo, new_commit_id, NEW_BRANCH, topic, GERRIT_CREDENTIALS)
             }
             custom_commits_info.add(getCommitInfo(repo, v))
         }
