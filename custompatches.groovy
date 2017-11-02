@@ -166,7 +166,7 @@ def runSshAgentCommandStatus(cmd) {
  * @param topic           Name of topic to use
  * @param credentialsId   Jenkins credentials to use
  */
-def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null, gitEmail='jenkins@localhost', gitName='jenkins-slave'){
+def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null, gitEmail='mcp-ci-jenkins@ci.mcp.mirantis.net', gitName='jenkins-slave'){
     def common = new com.mirantis.mk.Common()
     common.infoMsg("Uploading patch ${commit} to review...")
     def pusharg = "${commit}:refs/for/${branch}"
