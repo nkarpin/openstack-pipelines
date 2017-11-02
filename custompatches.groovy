@@ -105,6 +105,12 @@ def addGitRemote(repo, remoteName, remoteUri, credentialsId=null){
     dir(repo){
         if (0 != sh(script: "git remote -v | grep ${remoteName}", returnStatus: true)){
             sh(script: "git remote add ${remoteName} ${remoteUri}", returnStdout: true)
+        } else {
+            // Make sure that remote name and uri matches
+            if (0 != sh(script: "git remote -v | grep ${remoteName} | grep ${remoteUri}", returnStatus: true)){
+                sh(script: "git remote remove ${remoteName}", returnStdout: true)
+                sh(script: "git remote add ${remoteName} ${remoteUri}", returnStdout: true)
+            }
         }
         if (credentialsId == null){
             sh(script: remote_update_cmd)
@@ -195,6 +201,8 @@ node('python') {
     }
     stage ('Checkouting repository...'){
         git.checkoutGitRepository(repo, GERRIT_URI, 'master', GERRIT_CREDENTIALS)
+        // When repo exists make sure that origin is set to correct URI
+        addGitRemote(repo, 'origin', GERRIT_URI, GERRIT_CREDENTIALS)
         addGitRemote(repo, 'target', TARGET_GERRIT_URI, GERRIT_CREDENTIALS)
     }
 
