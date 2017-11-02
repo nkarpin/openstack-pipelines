@@ -47,11 +47,12 @@ def slave_node = 'python'
 
 def get_test_pattern(project) {
     def pattern_map = ['cinder': 'volume',
-                       'barbican': 'barbican_tempest_plugin',
+                       // currently ironic and barbican tempest plugins aren't available
+                       //'barbican': 'barbican_tempest_plugin',
                        'designate': 'designate_tempest_plugin',
                        'glance': 'image',
                        'heat': 'orchestration',
-                       'ironic': 'ironic_tempest_plugin',
+                       //'ironic': 'ironic_tempest_plugin',
                        'keystone': 'identity',
                        'nova': 'compute',
                        'neutron': 'network',]
