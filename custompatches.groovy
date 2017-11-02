@@ -166,7 +166,7 @@ def runSshAgentCommandStatus(cmd) {
  * @param topic           Name of topic to use
  * @param credentialsId   Jenkins credentials to use
  */
-def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null){
+def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null, gitEmail='jenkins@localhost', gitName='jenkins-slave'){
     def common = new com.mirantis.mk.Common()
     common.infoMsg("Uploading patch ${commit} to review...")
     def pusharg = "${commit}:refs/for/${branch}"
@@ -175,21 +175,23 @@ def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null){
     }
     def push_cmd = "git push target ${pusharg}"
     dir(repo){
+        sh "git config --global user.email '${gitEmail}'"
+        sh "git config --global user.name '${gitName}'"
         if (credentialsId == null){
                 sh(script: push_cmd)
-            } else {
-                def ssh = new com.mirantis.mk.Ssh()
-                ssh.prepareSshAgentKey(credentialsId)
-                //ssh.runSshAgentCommand(push_cmd)
-                def out = runSshAgentCommandStatus(push_cmd)
-                if (out['status'] != 0){
-                    if (out['stderr'] =~ /(?m).*no new changes.*/){
-                        common.infoMsg("No new changes in ${commit}, skipping...")
-                    } else if (out['stderr'] ==~ /(?m).*change \d+ closed.*/){
-                        common.infoMsg("Change ${commit} is closed in Gerrit, skipping it...")
-                    }
+        } else {
+            def ssh = new com.mirantis.mk.Ssh()
+            ssh.prepareSshAgentKey(credentialsId)
+            //ssh.runSshAgentCommand(push_cmd)
+            def out = runSshAgentCommandStatus(push_cmd)
+            if (out['status'] != 0){
+                if (out['stderr'] =~ /(?m).*no new changes.*/){
+                    common.infoMsg("No new changes in ${commit}, skipping...")
+                } else if (out['stderr'] ==~ /(?m).*change \d+ closed.*/){
+                    common.infoMsg("Change ${commit} is closed in Gerrit, skipping it...")
                 }
             }
+        }
     }
 }
 
