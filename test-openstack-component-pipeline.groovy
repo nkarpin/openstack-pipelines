@@ -229,7 +229,10 @@ node(slave_node) {
         // Clean
         //
         if (common.validInputParam('STACK_DELETE') && STACK_DELETE.toBoolean() == true) {
-            if (stack_name) {
+            try {
+                if (!stack_name || !node_name){
+                    error('Stack cleanup parameters are undefined, cannot cleanup')
+                }
                 stage('Trigger cleanup job') {
                     common.errorMsg('Stack cleanup job triggered')
                     build(job: STACK_CLEANUP_JOB, parameters: [
@@ -247,8 +250,8 @@ node(slave_node) {
                         [$class: 'BooleanParameterValue', name: 'DESTROY_ENV', value: true],
                     ])
                 }
-            } else {
-                error('Stack name is undefined, cannot cleanup')
+            } catch (Exception e) {
+                common.errorMsg("Stack cleanup failed\n${e.message}")
             }
         }
     }
