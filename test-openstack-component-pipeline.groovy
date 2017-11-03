@@ -108,6 +108,10 @@ node(slave_node) {
             if (common.validInputParam('TEST_MILESTONE')) {
                 test_milestone = TEST_MILESTONE
             }
+            // overwrite testrail parameters for debug purposes
+            if (common.validInputParam('TESTRAIL')) {
+                testrail = TESTRAIL
+            }
         }
 
         // setting pattern to run tests
