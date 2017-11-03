@@ -30,6 +30,7 @@
  *   STACK_TEST_JOB                    Job for launching tests
  *   STACK_TYPE                        Environment type (heat, physical, kvm)
  *   STACK_INSTALL                     Which components of the stack to install
+ *   TEST_TEMPEST_CONF                 Tempest configuration file path inside container
  *   TEST_TEMPEST_TARGET               Salt target for tempest tests
  *   TEST_TEMPEST_PATTERN              Tempest tests pattern
  *   TEST_MILESTONE                    MCP version
@@ -194,6 +195,7 @@ node(slave_node) {
             build(job: STACK_TEST_JOB, parameters: [
                 [$class: 'StringParameterValue', name: 'SLAVE_NODE', value: node_name],
                 [$class: 'StringParameterValue', name: 'SALT_MASTER_URL', value: salt_master_url],
+                [$class: 'StringParameterValue', name: 'TEST_TEMPEST_CONF', value: TEST_TEMPEST_CONF],
                 [$class: 'StringParameterValue', name: 'TEST_TEMPEST_TARGET', value: TEST_TEMPEST_TARGET],
                 [$class: 'StringParameterValue', name: 'TEST_TEMPEST_PATTERN', value: 'set=smoke'],
                 [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: false],
@@ -209,6 +211,7 @@ node(slave_node) {
                 build(job: STACK_TEST_JOB, parameters: [
                     [$class: 'StringParameterValue', name: 'SLAVE_NODE', value: node_name],
                     [$class: 'StringParameterValue', name: 'SALT_MASTER_URL', value: salt_master_url],
+                    [$class: 'StringParameterValue', name: 'TEST_TEMPEST_CONF', value: TEST_TEMPEST_CONF],
                     [$class: 'StringParameterValue', name: 'TEST_TEMPEST_TARGET', value: TEST_TEMPEST_TARGET],
                     [$class: 'StringParameterValue', name: 'TEST_TEMPEST_PATTERN', value: test_tempest_pattern],
                     [$class: 'StringParameterValue', name: 'TEST_MILESTONE', value: test_milestone],

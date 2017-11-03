@@ -13,6 +13,7 @@
  *   SALT_MASTER_URL              URL of Salt master
  *   SALT_MASTER_CREDENTIALS      Credentials to the Salt API
  *   TEST_TEMPEST_IMAGE           Docker image to run tempest
+ *   TEST_TEMPEST_CONF            Tempest configuration file path inside container
  *   TEST_DOCKER_INSTALL          Install docker
  *   TEST_TEMPEST_TARGET          Salt target to run tempest on
  *   TEST_TEMPEST_PATTERN         Tempest tests pattern
@@ -87,7 +88,8 @@ node(slave_node) {
                                              log_dir,
                                              '/home/rally/keystonercv3',
                                              'full',
-                                             test_tempest_concurrency)
+                                             test_tempest_concurrency,
+                                             TEST_TEMPEST_CONF)
         }
 
         stage('Archive rally artifacts') {
