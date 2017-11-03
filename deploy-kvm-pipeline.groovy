@@ -118,7 +118,7 @@ node('oscore-testing') {
                   error('STACK_NAME variable have to be defined')
               }
               echo "${STACK_NAME} ${TEMPLATE}"
-              if (TEMPLATE == 'Single') {
+              if (TEMPLATE == 'AIO') {
                   tpl = "${env.WORKSPACE}/templates/devops/clound-init-single.yaml"
               } else if (TEMPLATE == 'Multi') {
                   //multinode deployment will be here
