@@ -136,7 +136,7 @@ node(slave_node) {
         if (STACK_TYPE == 'kvm') {
             // Deploy KVM environment
             stage('Trigger deploy KVM job') {
-                deployBuild = build(job: "deploy-kvm-${TEST_MODEL}", propagate: false, parameters: [
+                deployBuild = build(job: 'oscore-deploy-kvm-VMs', propagate: false, parameters: [
                     [$class: 'BooleanParameterValue', name: 'DEPLOY_OPENSTACK', value: false],
                     [$class: 'BooleanParameterValue', name: 'DESTROY_ENV', value: false],
                     [$class: 'BooleanParameterValue', name: 'CREATE_ENV', value: true],
