@@ -237,12 +237,16 @@ node('python') {
                 def new_commit_id
                 dir(repo){
                     sh(script: "git checkout ${v}")
-                    sh(script: 'git commit --amend --no-edit')
+                    def out = runSshAgentCommandStatus('git commit --amend --no-edit')
                     new_commit_id = sh(script: 'git show HEAD', returnStdout: true).split( '\n' )[0].split()[1]
-                }
-                def topic = "custom/patches/${NEW_BRANCH}"
-                if (uploadPatchToReview(repo, new_commit_id, NEW_BRANCH, topic, GERRIT_CREDENTIALS) == false) {
-                    upload_failures.add(getCommitInfo(repo, v))
+                    if (out['status'] != 0 && out['stderr'] =~ /(?m).*--allow-empty.*/){
+                            common.infoMsg("No new changes in ${v}, skipping...")
+                    } else {
+                        def topic = "custom/patches/${NEW_BRANCH}"
+                        if (uploadPatchToReview(repo, new_commit_id, NEW_BRANCH, topic, GERRIT_CREDENTIALS) == false) {
+                            upload_failures.add(getCommitInfo(repo, v))
+                        }
+                    }
                 }
             }
             custom_commits_info.add(getCommitInfo(repo, v))
