@@ -168,6 +168,8 @@ def runSshAgentCommandStatus(cmd) {
  */
 def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null){
     def common = new com.mirantis.mk.Common()
+    def res = true
+
     common.infoMsg("Uploading patch ${commit} to review...")
     def pusharg = "${commit}:refs/for/${branch}"
     if (topic != null){
@@ -188,11 +190,14 @@ def uploadPatchToReview(repo, commit, branch, topic=null, credentialsId=null){
                 } else if (out['stderr'] ==~ /(?m).*change \d+ closed.*/){
                     common.infoMsg("Change ${commit} is closed in Gerrit, skipping it...")
                 } else {
-                    common.errorMsg("Failed to push new commit ${out['stderr']}")
+                    def msg = "Failed to push new commit ${out['stderr']}"
+                    common.errorMsg(msg)
+                    res = false
               }
             }
         }
     }
+    return res
 }
 
 node('python') {
@@ -210,7 +215,8 @@ node('python') {
 
     stage ('Processing custom patches'){
         def custom_patches = getCustomPatches(repo, "origin/${OLD_BRANCH}", "target/${NEW_BRANCH}")
-        def custom_commits_info=[]
+        def custom_commits_info = []
+        def upload_failures = []
 
         // Configure global email settings for user
         if (common.validInputParam('DRY_RUN') && ! DRY_RUN.toBoolean()){
@@ -235,7 +241,9 @@ node('python') {
                     new_commit_id = sh(script: 'git show HEAD', returnStdout: true).split( '\n' )[0].split()[1]
                 }
                 def topic = "custom/patches/${NEW_BRANCH}"
-                uploadPatchToReview(repo, new_commit_id, NEW_BRANCH, topic, GERRIT_CREDENTIALS)
+                if (uploadPatchToReview(repo, new_commit_id, NEW_BRANCH, topic, GERRIT_CREDENTIALS) == false) {
+                    upload_failures.add(getCommitInfo(repo, v))
+                }
             }
             custom_commits_info.add(getCommitInfo(repo, v))
         }
@@ -245,6 +253,11 @@ node('python') {
             common.infoMsg(custom_commits_info.join('\n'))
         } else {
             common.infoMsg("No custom patches between ${OLD_BRANCH} and ${NEW_BRANCH} found.")
+        }
+        if (upload_failures){
+            currentBuild.result = 'FAILURE'
+            common.errorMsg('Failed to upload the following patches to review:')
+            common.errorMsg(upload_failures.join('\n'))
         }
     }
 }
