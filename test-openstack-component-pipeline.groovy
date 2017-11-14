@@ -77,6 +77,7 @@ node(slave_node) {
     def stack_name
     def formula_pkg_revision = 'stable'
     def node_name = slave_node
+    def use_pepper = false
 
     try {
 
@@ -139,6 +140,8 @@ node(slave_node) {
         }
 
         if (STACK_TYPE == 'kvm') {
+            // In order to access deployed vms from pipeline, we need to use pepper
+            use_pepper = true
             // Deploy KVM environment
             stage('Trigger deploy KVM job') {
                 deployBuild = build(job: 'oscore-deploy-kvm-VMs', propagate: false, parameters: [
@@ -203,6 +206,7 @@ node(slave_node) {
                 [$class: 'StringParameterValue', name: 'TEST_TEMPEST_TARGET', value: TEST_TEMPEST_TARGET],
                 [$class: 'StringParameterValue', name: 'TEST_TEMPEST_PATTERN', value: 'set=smoke'],
                 [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: false],
+                [$class: 'BooleanParameterValue', name: 'USE_PEPPER', value: use_pepper],
                 [$class: 'StringParameterValue', name: 'PROJECT', value: 'smoke'],
                 [$class: 'StringParameterValue', name: 'TEST_PASS_THRESHOLD', value: '100'],
                 [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: true],
@@ -222,6 +226,7 @@ node(slave_node) {
                     [$class: 'StringParameterValue', name: 'TEST_MODEL', value: TEST_MODEL],
                     [$class: 'StringParameterValue', name: 'OPENSTACK_VERSION', value: OPENSTACK_VERSION],
                     [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: testrail.toBoolean()],
+                    [$class: 'BooleanParameterValue', name: 'USE_PEPPER', value: use_pepper],
                     [$class: 'StringParameterValue', name: 'PROJECT', value: project],
                     [$class: 'StringParameterValue', name: 'TEST_PASS_THRESHOLD', value: TEST_PASS_THRESHOLD],
                     [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: FAIL_ON_TESTS.toBoolean()],

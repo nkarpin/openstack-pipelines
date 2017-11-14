@@ -27,6 +27,7 @@
  *   FAIL_ON_TESTS                Whether to fail build on tests failures or not
  *   TEST_PASS_THRESHOLD          Persent of passed tests to consider build successful
  *   SLAVE_NODE                   Label or node name where the job will be run
+ *   USE_PEPPER                   Whether to use pepper for connection to salt master
  *
  */
 
@@ -54,6 +55,10 @@ node(slave_node) {
     def test_model = ''
     def venv = "${env.WORKSPACE}/venv"
     def test_tempest_concurrency = '0'
+    def use_pepper = true
+    if (common.validInputParam('USE_PEPPER')){
+        use_pepper = USE_PEPPER.toBoolean()
+    }
 
     try {
 
@@ -72,8 +77,12 @@ node(slave_node) {
         }
 
         stage ('Connect to salt master') {
-            python.setupPepperVirtualenv(venv, SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
-            saltMaster = "${venv}"
+            if (use_pepper) {
+                python.setupPepperVirtualenv(venv, SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
+                saltMaster = venv
+            } else {
+                saltMaster = salt.connection(SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
+            }
         }
 
         if (common.checkContains('TEST_DOCKER_INSTALL', 'true')) {
