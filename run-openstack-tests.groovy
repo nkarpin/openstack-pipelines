@@ -90,6 +90,10 @@ node(slave_node) {
                                              'full',
                                              test_tempest_concurrency,
                                              TEST_TEMPEST_CONF)
+            def tempest_stdout
+            tempest_stdout = salt.cmdRun(saltMaster, TEST_TEMPEST_TARGET, "cat ${reports_dir}/report_full_*.log", true, null, false)['return'][0].values()[0].replaceAll('Salt command execution success', '')
+            common.infoMsg('Short test report:')
+            common.infoMsg(tempest_stdout)
         }
 
         stage('Archive rally artifacts') {
