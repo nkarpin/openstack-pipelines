@@ -131,7 +131,7 @@ template:
                      - sudo pip install 'cffi>=1.6.0'
                      - sudo pip install 'pyOpenSSL>=16.2.0'
 
-                     - sudo curl -q https://raw.githubusercontent.com/ohryhorov/devops-templates/master/saltmaster_install.sh -o /tmp/saltmaster_install.sh
+                     - sudo curl -q 'https://gerrit.mcp.mirantis.net/gitweb?p=openstack-ci/openstack-pipelines.git;a=blob_plain;f=devops/saltmaster_install.sh;hb=refs/heads/master' -o /tmp/saltmaster_install.sh
                      - chmod 755 /tmp/saltmaster_install.sh && /tmp/saltmaster_install.sh
 
                      # Node is ready, allow SSH access
