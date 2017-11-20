@@ -78,7 +78,7 @@ node(slave_node) {
 
         stage ('Connect to salt master') {
             if (use_pepper) {
-                python.setupPepperVirtualenv(venv, SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
+                python.setupPepperVirtualenv(venv, SALT_MASTER_URL, SALT_MASTER_CREDENTIALS, true)
                 saltMaster = venv
             } else {
                 saltMaster = salt.connection(SALT_MASTER_URL, SALT_MASTER_CREDENTIALS)
