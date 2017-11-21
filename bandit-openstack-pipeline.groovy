@@ -7,8 +7,8 @@ def common = new com.mirantis.mk.Common()
 def runVirtualenvCommandStatus(path, cmd) {
     def common = new com.mirantis.mk.Common()
     def res = [:]
-    def stderr = sh(script: 'mktemp', returnStdout: true)
-    def stdout = sh(script: 'mktemp', returnStdout: true)
+    def stderr = sh(script: 'mktemp', returnStdout: true).trim()
+    def stdout = sh(script: 'mktemp', returnStdout: true).trim()
 
     try {
         def virtualenv_cmd = ". ${path}/bin/activate > /dev/null; ${cmd} 1>${stdout} 2>${stderr}"
@@ -49,6 +49,7 @@ def runBanditTests(venv, target, excludes='', reportPath='', reportFormat='csv',
 
 // there is no native ini parser in groovy
 def getIniParamValue(path, section, param){
+    def common = new com.mirantis.mk.Common()
     def parserFile = "${env.WORKSPACE}/iniFileParser.py"
     def parserScript = """
 import ConfigParser
@@ -61,23 +62,20 @@ param = sys.argv[3]
 config = ConfigParser.ConfigParser()
 config.read([path])
 
-try:
-    val = config.get(section, param)
-except ConfigParser.NoSectionError as e:
-    sys.exit(5)
+val = config.get(section, param)
 sys.stdout.write(val.strip()+'\\n')
 """
 
     writeFile file: parserFile, text: parserScript
 
     def res = [:]
-    def stderr = sh(script: 'mktemp', returnStdout: true)
-    def stdout = sh(script: 'mktemp', returnStdout: true)
+    def stderr = sh(script: 'mktemp', returnStdout: true).trim()
+    def stdout = sh(script: 'mktemp', returnStdout: true).trim()
 
     try {
-        def cmd = "python iniFileParser.py ${path} ${section} ${param} 1>${stdout} 2>${stderr}"
+        def cmd = "python ${parserFile} ${path} ${section} ${param} 1>${stdout} 2>${stderr}"
         common.infoMsg("Run command ${cmd}")
-        def status = sh(script: virtualenv_cmd, returnStatus: true)
+        def status = sh(script: cmd, returnStatus: true)
         res['stderr'] = sh(script: "cat ${stderr}", returnStdout: true)
         res['stdout'] = sh(script: "cat ${stdout}", returnStdout: true)
         res['status'] = status
@@ -126,17 +124,16 @@ node('python'){
 
             if (UPSTREAM.toBoolean()) {
                 // Currently upstream implementation of bandit doesn't generate report
-                def ini_res = getIniParamValue('tox.ini', 'testenv:bandit', 'commands')[0].trim()
-
+                def ini_res = getIniParamValue('tox.ini', 'testenv:bandit', 'commands')
                 if (ini_res['status'] == 0){
                     res = runVirtualenvCommandStatus(venv, "${ini_res['stdout']} -o ${env.WORKSPACE}/${report_path} -f ${REPORT_FORMAT}")
-                } else if (ini_res['status'] == 5){
-                    common.errorMsg('Bandit tests not found in project\'s tox.ini, skipping upstream tests')
+                } else if (ini_res['stderr'].contains('ConfigParser.NoSectionError')){
                     currentBuild.result = 'NOT_BUILT'
-                    return
+                    error("Bandit section not found in tox.ini\n${ini_res['stderr']}")
                 } else {
                     error("Failed to get bandit command\n${ini_res['stderr']}")
                 }
+
             } else {
                 // Not all projects have bandit in tox.ini
                 def code_dir = getIniParamValue('setup.cfg', 'files', 'packages')[0]
