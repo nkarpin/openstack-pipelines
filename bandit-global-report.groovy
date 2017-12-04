@@ -16,16 +16,16 @@ for (int i = 0; i < project_list.size(); i++) {
 
     project_bandit_test["Bandit test: ${project_name}"] = {
         node('python'){
-            url = "ssh://oscc-ci@review.fuel-infra.org:29418/openstack/${project_name}"
-            builds["${project_name}"] = build job: BANDIT_JOB, propagate: false, parameters: [
+            //url = "ssh://oscc-ci@review.fuel-infra.org:29418/openstack/${project_name}"
+            builds["${project_name}"] = build job: "oscore-bandit-${TYPE}-${project_name}", propagate: false, parameters: [
                 [$class: 'StringParameterValue', name: 'SEVERITY', value: SEVERITY],
                 [$class: 'StringParameterValue', name: 'CONFIDENCE', value: CONFIDENCE],
                 [$class: 'StringParameterValue', name: 'REPORT_FORMAT', value: REPORT_FORMAT],
                 [$class: 'StringParameterValue', name: 'GERRIT_BRANCH', value: GERRIT_BRANCH],
-                [$class: 'StringParameterValue', name: 'GERRIT_USER', value: 'oscc-ci'],
-                [$class: 'StringParameterValue', name: 'CREDENTIALS_ID', value: 'oscc-ci'],
+                [$class: 'StringParameterValue', name: 'GERRIT_USER', value: GERRIT_USER],
+                [$class: 'StringParameterValue', name: 'CREDENTIALS_ID', value: CREDENTIALS_ID],
                 [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: false],
-                [$class: 'StringParameterValue', name: 'GERRIT_PROJECT_URL', value: url],
+                [$class: 'StringParameterValue', name: 'GERRIT_PROJECT_URL', value: "${GERRIT_URL}/${project_name}"],
             ]
         }
     }
@@ -48,7 +48,7 @@ node('python') {
             def selector = [$class: 'SpecificBuildSelector', buildNumber: "${number}"]
             if(builds[k].result == 'SUCCESS') {
                 step ([$class: 'CopyArtifact',
-                       projectName: BANDIT_JOB,
+                       projectName: "oscore-bandit-${TYPE}-${project_name}",
                        selector: selector,
                        filter: "_artifacts/report-${k}.${REPORT_FORMAT}",
                        target: "${reports_dir}",
