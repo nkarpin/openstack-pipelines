@@ -1,6 +1,6 @@
 def common = new com.mirantis.mk.Common()
 
-project_list = ['nova', 'cinder', 'keystone', 'keystonemiddleware', 'keystoneauth',
+project_list = ['nova', 'cinder', 'ironic', 'keystone', 'keystonemiddleware', 'keystoneauth',
                 'glance', 'glance_store', 'neutron', 'heat', 'barbican', 'designate',
                 'octavia', 'castellan', 'python-keystoneclient', 'python-openstackclient',
                 'oslo.utils', 'oslo.config', 'oslo.log', 'oslo.service', 'oslo.messaging',
@@ -22,7 +22,6 @@ for (int i = 0; i < project_list.size(); i++) {
                 [$class: 'StringParameterValue', name: 'CONFIDENCE', value: CONFIDENCE],
                 [$class: 'StringParameterValue', name: 'REPORT_FORMAT', value: REPORT_FORMAT],
                 [$class: 'StringParameterValue', name: 'GERRIT_BRANCH', value: GERRIT_BRANCH],
-                [$class: 'StringParameterValue', name: 'GERRIT_USER', value: GERRIT_USER],
                 [$class: 'StringParameterValue', name: 'CREDENTIALS_ID', value: CREDENTIALS_ID],
                 [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: false],
                 [$class: 'StringParameterValue', name: 'GERRIT_PROJECT_URL', value: "${GERRIT_URL}/${project_name}"],
