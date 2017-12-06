@@ -23,7 +23,7 @@ python = new com.mirantis.mk.Python()
 */
 def getKvmOldStacks(venv, envVars, pattern, days){
     withEnv(envVars) {
-        return python.runVirtualenvCommand(venv,"dos.py list-old ${days}d | grep ${pattern} || true").tokenize('\n')
+        return python.runVirtualenvCommand(venv, "dos.py list-old ${days}d | grep ${pattern} || true").tokenize('\n')
     }
 }
 
@@ -55,7 +55,7 @@ def namePatterns = ENV_NAME_PATTERNS_LIST.tokenize(',')
 def devops_work_dir = '/var/fuel-devops-venv'
 def envVars = ["WORKING_DIR=${devops_work_dir}",
                "DEVOPS_DB_NAME=${devops_work_dir}/fuel-devops.sqlite",
-               'DEVOPS_DB_ENGINE=django.db.backends.sqlite3']
+               'DEVOPS_DB_ENGINE=django.db.backends.sqlite3',]
 
 if (common.validInputParam('SLAVES')) {
     slaves = SLAVES.tokenize()

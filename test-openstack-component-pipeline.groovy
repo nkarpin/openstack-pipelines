@@ -30,6 +30,8 @@
  *   STACK_TEST_JOB                    Job for launching tests
  *   STACK_TYPE                        Environment type (heat, physical, kvm)
  *   STACK_INSTALL                     Which components of the stack to install
+ *   STACK_RECLASS_ADDRESS             Url to repository with stack salt models
+ *   STACK_RECLASS_BRANCH              Branch of repository with stack salt models
  *   TEST_TEMPEST_CONF                 Tempest configuration file path inside container
  *   TEST_TEMPEST_TARGET               Salt target for tempest tests
  *   TEST_TEMPEST_PATTERN              Tempest tests pattern
@@ -78,6 +80,15 @@ node(slave_node) {
     def formula_pkg_revision = 'stable'
     def node_name = slave_node
     def use_pepper = false
+    // if stack reclass parameters are left empty, than default from heat template will be used
+    def stack_reclass_address = ''
+    def stack_reclass_branch = ''
+    if (common.validInputParam('STACK_RECLASS_ADDRESS')) {
+        stack_reclass_address = STACK_RECLASS_ADDRESS
+    }
+    if (common.validInputParam('STACK_RECLASS_BRANCH')) {
+        stack_reclass_branch = STACK_RECLASS_BRANCH
+    }
 
     try {
 
@@ -148,6 +159,8 @@ node(slave_node) {
                     [$class: 'BooleanParameterValue', name: 'DEPLOY_OPENSTACK', value: false],
                     [$class: 'BooleanParameterValue', name: 'DESTROY_ENV', value: false],
                     [$class: 'BooleanParameterValue', name: 'CREATE_ENV', value: true],
+                    [$class: 'StringParameterValue', name: 'STACK_RECLASS_ADDRESS', value: stack_reclass_address],
+                    [$class: 'StringParameterValue', name: 'STACK_RECLASS_BRANCH', value: stack_reclass_branch],
                     [$class: 'TextParameterValue', name: 'SALT_OVERRIDES', value: salt_overrides_list.join('\n')],
                 ])
             }
@@ -177,6 +190,8 @@ node(slave_node) {
                     [$class: 'StringParameterValue', name: 'OPENSTACK_API_PROJECT', value: OPENSTACK_API_PROJECT],
                     [$class: 'StringParameterValue', name: 'HEAT_STACK_ZONE', value: HEAT_STACK_ZONE],
                     [$class: 'StringParameterValue', name: 'STACK_INSTALL', value: STACK_INSTALL],
+                    [$class: 'StringParameterValue', name: 'STACK_RECLASS_ADDRESS', value: stack_reclass_address],
+                    [$class: 'StringParameterValue', name: 'STACK_RECLASS_BRANCH', value: stack_reclass_branch],
                     [$class: 'StringParameterValue', name: 'STACK_TEST', value: ''],
                     [$class: 'StringParameterValue', name: 'STACK_TYPE', value: STACK_TYPE],
                     [$class: 'StringParameterValue', name: 'FORMULA_PKG_REVISION', value: formula_pkg_revision],
