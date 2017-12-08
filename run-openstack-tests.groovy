@@ -47,7 +47,7 @@ if (common.validInputParam('SLAVE_NODE')) {
 
 node(slave_node) {
 
-    def log_dir = "/home/rally/rally_reports/${PROJECT}"
+    def log_dir = "/home/rally/rally_reports/${PROJECT}/"
     def reports_dir = "/root/rally_reports/${PROJECT}"
     def date = sh(script: 'date +%Y-%m-%d', returnStdout: true).trim()
     def testrail = false
