@@ -85,8 +85,8 @@ def matchPublished(server, distribution, prefix) {
                     return prefix
                 }
             } else {
-                if (row.key == 'Distribution' && row.value == distribution && items['Prefix'] == prefix.tokenize(':').last()) {
-                    println ("items1: ${items} key ${row.key} value ${row.value}")
+                if (row.key == 'Distribution' && row.value == distribution && items['Prefix'] == prefix.tokenize(':').last() && items['Storage'] == '') {
+                    println ("items2: ${items} key ${row.key} value ${row.value}")
                     return prefix
                 }
             }
