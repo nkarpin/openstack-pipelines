@@ -169,7 +169,7 @@ node('python'){
 
     stage('Deploying environment and testing'){
         for (openstack_release in OPENSTACK_RELEASES.tokenize(',')) {
-            deploy_release["OpenStack ${release} deployment"] = {
+            deploy_release["OpenStack ${openstack_release} deployment"] = {
                 node('oscore-testing') {
                     testBuilds["${openstack_release}"] = build job: DEPLOY_JOB_NAME, propagate: false, parameters: [
                         [$class: 'StringParameterValue', name: 'EXTRA_REPO', value: "deb [arch=amd64] http://${tmp_repo_node_name}/oscc-dev ${distribution} ${components}"],
