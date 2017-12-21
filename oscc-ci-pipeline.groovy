@@ -169,16 +169,17 @@ node('python'){
 
     stage('Deploying environment and testing'){
         for (openstack_release in OPENSTACK_RELEASES.tokenize(',')) {
-            deploy_release["OpenStack ${openstack_release} deployment"] = {
+            def release = openstack_release
+            deploy_release["OpenStack ${release} deployment"] = {
                 node('oscore-testing') {
-                    testBuilds["${openstack_release}"] = build job: DEPLOY_JOB_NAME, propagate: false, parameters: [
+                    testBuilds["${release}"] = build job: DEPLOY_JOB_NAME, propagate: false, parameters: [
                         [$class: 'StringParameterValue', name: 'EXTRA_REPO', value: "deb [arch=amd64] http://${tmp_repo_node_name}/oscc-dev ${distribution} ${components}"],
                         [$class: 'StringParameterValue', name: 'EXTRA_REPO_PRIORITY', value: '1200'],
                         [$class: 'StringParameterValue', name: 'EXTRA_REPO_PIN', value: "release c=${components}"],
                         [$class: 'StringParameterValue', name: 'FORMULA_PKG_REVISION', value: 'stable'],
                         [$class: 'BooleanParameterValue', name: 'STACK_DELETE', value: false],
                         [$class: 'StringParameterValue', name: 'STACK_RECLASS_ADDRESS', value: STACK_RECLASS_ADDRESS],
-                        [$class: 'StringParameterValue', name: 'STACK_RECLASS_BRANCH', value: "stable/${openstack_release}"],
+                        [$class: 'StringParameterValue', name: 'STACK_RECLASS_BRANCH', value: "stable/${release}"],
                     ]
                 }
             }
