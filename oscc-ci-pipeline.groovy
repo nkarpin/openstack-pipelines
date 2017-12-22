@@ -171,7 +171,8 @@ node('python'){
                 }
 */
                 common.infoMsg("Publishing ${distribution} for prefix ${prefix} is started.")
-                snapshotPublish(server, snapshot, distribution, components, prefix)
+//                snapshotPublish(server, snapshot, distribution, components, prefix)
+                snapshotPublish(server, distribution, components, prefix)
                 common.successMsg("Snapshot ${snapshot} has been published for prefix ${prefix}")
             }
         }
