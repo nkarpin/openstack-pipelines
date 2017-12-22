@@ -6,6 +6,7 @@
  *  - Checkout of repository with project code
  *  - Preparing Bandit virtual env and settings for scan
  *  - Bandit scan of target code diretories
+ *  - If report format is json, upload it and csv generated report to reporting tool
  *  - Archieving report to artifacts.
  *
  * Flow parameters:
@@ -23,8 +24,13 @@
  *   CONFIDENCE                        Confidence setting for bandit (used in downstream mode - e.g.
  *                                     1 - low, 2 - medium, 3 - high)
  *   UPSTREAM                          Whether to work in upstream or downstream mode
- *
+ *   UPLOAD_REPORT                     Whether to upload report to reporting tool
+ *   UPLOAD_CREDENTIALS_ID             Jenkins credentials id for connection to report host
+ *   REPORT_FORMAT                     Format of generated report (json, csv, html)
+ *   REPORT_HOST                       Host to upload report on
+ *   REPORT_USER                       User for report uploading to report host *
  **/
+def ssh = new com.mirantis.mk.Ssh()
 def gerrit = new com.mirantis.mk.Gerrit()
 def git = new com.mirantis.mk.Git()
 def python = new com.mirantis.mk.Python()
@@ -104,7 +110,35 @@ sys.stdout.write(val.strip()+'\\n')
     return runShCommandStatus("python ${parserFile} ${path} ${section} ${param}")
 }
 
-node('python'){
+def writeBanditCsvReport(csv, columns, data = []) {
+    def common = new com.mirantis.mk.Common()
+    def encode = { e -> "\"$e\"" }
+    def columns_encoded = []
+
+    // encode columns to csv valid form e.g. "column"
+    for (i = 0; i < columns.size(); i++) {
+        columns_encoded.add(encode(columns[i]))
+    }
+    def csv_list = [columns_encoded.join(',')]
+
+    // generate list of csv rows
+    if (data) {
+        for (i in data) {
+            row = []
+            for (col in columns) {
+                row.add(encode(i[col]))
+            }
+            csv_list.add(row.join(','))
+        }
+    } else {
+        csv_list.add(encode('No issues found'))
+    }
+
+    common.infoMsg('Generating Bandit CSV report from json')
+    writeFile file: csv, text: csv_list.join('\n')
+}
+
+node('oscore-testing'){
 
     def build_result = 'FAILURE'
     if (!FAIL_ON_TESTS.toBoolean()){
@@ -117,9 +151,13 @@ node('python'){
     def project_name = project_url.tokenize('/').last() - ~/\.git$/
     def project_path = "${env.WORKSPACE}/${project_name}"
     def artifacts_dir = '_artifacts'
-    def report_path = "${artifacts_dir}/report-${project_name}.${REPORT_FORMAT}"
+    def report_path = "${env.WORKSPACE}/${artifacts_dir}/report-${project_name}.${REPORT_FORMAT}"
     def venv = "${env.WORKSPACE}/bandit_${project_name}"
     def ini_res
+    def version = GERRIT_BRANCH.tokenize('/').last()
+    def upload_report = false
+    def remote_root = '/var/www/bandit'
+    def remote_upload_path = "${remote_root}/${version}/${project_name}"
 
     sh("rm -rf ${artifacts_dir} && mkdir -p ${artifacts_dir}")
 
@@ -165,14 +203,17 @@ node('python'){
             if (UPSTREAM.toBoolean()) {
                 common.infoMsg("Running upstream Bandit tests for ${project_name}")
                 // Currently upstream implementation of bandit doesn't generate report
-                res = runVirtualenvCommandStatus(venv, "${ini_res['stdout'].trim()} -o ${env.WORKSPACE}/${report_path} -f ${REPORT_FORMAT}")
+                res = runVirtualenvCommandStatus(venv, "${ini_res['stdout'].trim()} -o ${report_path} -f ${REPORT_FORMAT}")
             } else {
+                if (common.validInputParam('UPLOAD_REPORT')){
+                    upload_report = UPLOAD_REPORT.toBoolean()
+                }
                 def code_dirs = ini_res['stdout'].tokenize('\n')
                 def excluded = /(.*tempest_plugin.*)|(heat_integrationtests)/
                 // Exclude upper directories which shouldn't be scanned (tempest plugins etc.)
                 code_dirs.removeAll { it ==~ excluded }
                 common.infoMsg("Running downstream Bandit tests for ${project_name} in directories ${code_dirs}")
-                res = runBanditTests(venv, code_dirs, ['tests'], "${env.WORKSPACE}/${report_path}",
+                res = runBanditTests(venv, code_dirs, ['tests'], "${report_path}",
                     REPORT_FORMAT, SEVERITY.toInteger(), CONFIDENCE.toInteger())
             }
 
@@ -189,11 +230,31 @@ node('python'){
             } else if (res['status'] > 1){
                 common.errorMsg('Bandit tests failed')
                 currentBuild.result = 'FAILURE'
+                // do not upload report if there were errors in bandit
+                upload_report = false
             }
         }
     }
 
-    stage("Archieving bandit scan results for ${project_name}"){
-        archiveArtifacts artifacts: report_path
+    try {
+        if (REPORT_FORMAT == 'json') {
+            // read json file in hashmap
+            def report_data = readJSON file: "${report_path}"
+            def columns = ['filename', 'test_name', 'test_id', 'issue_severity', 'issue_confidence', 'issue_text', 'line_number', 'line_range']
+            writeBanditCsvReport("${env.WORKSPACE}/${artifacts_dir}/report-${project_name}.csv", columns, report_data['results'])
+            if (upload_report) {
+                def report_host_url = "${REPORT_USER}@${REPORT_HOST}"
+                stage ('Uploading reports') {
+                    ssh.ensureKnownHosts(REPORT_HOST)
+                    ssh.prepareSshAgentKey(UPLOAD_CREDENTIALS_ID)
+                    ssh.runSshAgentCommand("ssh ${report_host_url} 'mkdir -p ${remote_upload_path}'")
+                    ssh.runSshAgentCommand("scp ${artifacts_dir}/report-${project_name}.* ${report_host_url}:${remote_upload_path}")
+                }
+            }
+        }
+    } finally {
+        stage("Archieving bandit scan results for ${project_name}"){
+            archiveArtifacts artifacts: "${artifacts_dir}/report-${project_name}.*"
+        }
     }
 }
