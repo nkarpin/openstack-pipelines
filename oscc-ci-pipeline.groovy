@@ -109,11 +109,15 @@ def snapshotCreate(server, repo) {
     return snapshot
 }
 
-def snapshotPublish(server, snapshot, distribution, components, prefix) {
+def snapshotPublish(server, distribution, components, prefix) {
+//def snapshotPublish(server, snapshot, distribution, components, prefix) {
+    def aptly = new com.mirantis.mk.Aptly()
 
-    String data = "{\"SourceKind\": \"snapshot\", \"Sources\": [{\"Name\": \"${snapshot}\", \"Component\": \"${components}\" }], \"Architectures\": [\"amd64\"], \"Distribution\": \"${distribution}\"}"
+//    String data = "{\"SourceKind\": \"snapshot\", \"Sources\": [{\"Name\": \"${snapshot}\", \"Component\": \"${components}\" }], \"Architectures\": [\"amd64\"], \"Distribution\": \"${distribution}\"}"
 
-    return restPost(server, "/api/publish/${prefix}", data)
+    aptly.promotePublish(server, 'xenial/nightly', "${prefix}/${distribution}", 'false', components, '', '', '-d --timeout 1200', '', '')
+
+//    return restPost(server, "/api/publish/${prefix}", data)
 
 }
 
@@ -128,16 +132,18 @@ node('python'){
         'url': 'http://172.16.48.254:8084',
     ]
 //    def repo = 'ubuntu-xenial-salt'
-    def distribution = 'dev-os-salt-formulas'
-    def components = 'dev-salt-formulas'
-    def prefixes = ['oscc-dev', 's3:aptcdn:oscc-dev']
-    def tmp_repo_node_name = 'apt.mirantis.com'
+    def DISTRIBUTION = 'dev-os-salt-formulas'
+    def components = 'salt-formulas'
+//    def prefixes = ['oscc-dev', 's3:aptcdn:oscc-dev']
+    def prefixes = ['oscc-dev']
+    def tmp_repo_node_name = 'apt.mcp.mirantis.net:8085'
 //    def deployBuild
     def STACK_RECLASS_ADDRESS = 'https://gerrit.mcp.mirantis.net/salt-models/mcp-virtual-aio'
     def OPENSTACK_RELEASES = 'ocata,pike'
 //    def buildResult = [:]
     def notToPromote
-    def DEPLOY_JOB_NAME = 'oscore-MCP1.1-test-release-nightly'
+//    def DEPLOY_JOB_NAME = 'oscore-MCP1.1-test-release-nightly'
+    def DEPLOY_JOB_NAME = 'oscore-MCP1.1-virtual_mcp11_aio-pike-stable'
     def testBuilds = [:]
     def deploy_release = [:]
 
@@ -150,8 +156,12 @@ node('python'){
         }
 
         stage('Publishing the snapshots'){
+            def now = new Date()
+            def ts = now.format('yyyyMMddHHmmss', TimeZone.getTimeZone('UTC'))
+            def distribution = "${DISTRIBUTION}-${ts}"
+
             for (prefix in prefixes) {
-                common.infoMsg("Checking ${distribution} is published for prefix ${prefix}")
+/*                common.infoMsg("Checking ${distribution} is published for prefix ${prefix}")
                 retPrefix = matchPublished(server, distribution, prefix)
 
                 if (retPrefix) {
@@ -159,7 +169,7 @@ node('python'){
                     snapshotUnpublish(server, retPrefix, distribution)
                     common.successMsg("Distribution ${distribution} has been unpublished for prefix ${retPrefix}")
                 }
-
+*/
                 common.infoMsg("Publishing ${distribution} for prefix ${prefix} is started.")
                 snapshotPublish(server, snapshot, distribution, components, prefix)
                 common.successMsg("Snapshot ${snapshot} has been published for prefix ${prefix}")
@@ -195,7 +205,7 @@ node('python'){
             if (testBuilds[k].result != 'SUCCESS') {
                 notToPromote = true
             }
-            println(testBuilds[k] + ': ' + testBuilds[k].result)
+            println(k + ': ' + testBuilds[k].result)
         }
 
 //        notToPromote = buildResult.find { openstackrelease, result -> result != 'SUCCESS' }
