@@ -9,6 +9,8 @@
  *
  * Flow parameters:
  *   EXTRA_REPO                        Repository with additional packages
+ *   BOOTSTRAP_EXTRA_REPO_PARAMS       List of extra repos and related parameters injected on salt bootstrap stage:
+ *                                     repo 1, repo priority 1, repo pin 1; repo 2, repo priority 2, repo pin 2
  *   REPO_URL                          URL to temporary repository with tested packages
  *   EXTRA_REPO_PIN                    Pin string for extra repo - eg "origin hostname.local"
  *   EXTRA_REPO_PRIORITY               Repo priority
@@ -80,6 +82,7 @@ node(slave_node) {
     def formula_pkg_revision = 'stable'
     def node_name = slave_node
     def use_pepper = false
+    def bootstrap_extra_repo_params = ''
     // if stack reclass parameters are left empty, than default from heat template will be used
     def stack_reclass_address = ''
     def stack_reclass_branch = ''
@@ -129,6 +132,10 @@ node(slave_node) {
         // setting pattern to run tests
         def test_tempest_pattern = TEST_TEMPEST_PATTERN ?: get_test_pattern(project)
 
+        if (common.validInputParam('BOOTSTRAP_EXTRA_REPO_PARAMS')) {
+            bootstrap_extra_repo_params = BOOTSTRAP_EXTRA_REPO_PARAMS
+        }
+        // Deprecated, BOOTSTRAP_EXTRA_REPO_PARAMS should be used instead
         // Setting extra repo
         if (extra_repo) {
             // by default pin to fqdn of extra repo host
@@ -197,6 +204,7 @@ node(slave_node) {
                     [$class: 'StringParameterValue', name: 'FORMULA_PKG_REVISION', value: formula_pkg_revision],
                     [$class: 'BooleanParameterValue', name: 'STACK_DELETE', value: false],
                     [$class: 'TextParameterValue', name: 'SALT_OVERRIDES', value: salt_overrides_list.join('\n')],
+                    [$class: 'StringParameterValue', name: 'BOOTSTRAP_EXTRA_REPO_PARAMS', value: bootstrap_extra_repo_params],
                 ])
             }
             // get salt master url
