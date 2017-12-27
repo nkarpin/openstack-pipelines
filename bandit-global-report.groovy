@@ -9,9 +9,6 @@ project_list = ['nova', 'cinder', 'ironic', 'keystone', 'keystonemiddleware', 'k
                 'python-barbicanclient', 'python-designateclient', 'python-monascaclient'
                 ]
 
-def concurrency = REPORT_CONCURRENCY.toInteger()
-def builds = [:]
-
 def run_parallel_scans(project_list=[], builds=[:]) {
     def project_bandit_test = [:]
     for (int i = 0; i < project_list.size(); i++) {
@@ -26,6 +23,7 @@ def run_parallel_scans(project_list=[], builds=[:]) {
                     [$class: 'StringParameterValue', name: 'GERRIT_BRANCH', value: GERRIT_BRANCH],
                     [$class: 'StringParameterValue', name: 'CREDENTIALS_ID', value: CREDENTIALS_ID],
                     [$class: 'BooleanParameterValue', name: 'FAIL_ON_TESTS', value: false],
+                    [$class: 'BooleanParameterValue', name: 'UPLOAD_REPORT', value: UPLOAD_REPORT.toBoolean()],
                     [$class: 'StringParameterValue', name: 'GERRIT_PROJECT_URL', value: "${GERRIT_URL}${project_name}"],
                 ]
             }
@@ -33,6 +31,9 @@ def run_parallel_scans(project_list=[], builds=[:]) {
     }
     parallel project_bandit_test
 }
+
+def concurrency = REPORT_CONCURRENCY.toInteger()
+def builds = [:]
 
 stage('Running parallel Bandit tests') {
 
@@ -73,7 +74,7 @@ node('python') {
                 step ([$class: 'CopyArtifact',
                        projectName: "oscore-bandit-${TYPE}-${k}",
                        selector: selector,
-                       filter: "_artifacts/report-${k}.${REPORT_FORMAT}",
+                       filter: "_artifacts/report-${k}.*",
                        target: "${reports_dir}",
                        flatten: true,])
             }
@@ -88,7 +89,7 @@ node('python') {
                 for (f in report_list){
                     def title = f-'report-'-'.csv'
                     def r = readFile(f)
-                    global_list.add(title+'\n'+r)
+                    global_list.add(title+'\n'+r+'\n')
                 }
             }
             writeFile file: "${reports_dir}/bandit_report_${version}.csv", text: global_list.join('\n')
