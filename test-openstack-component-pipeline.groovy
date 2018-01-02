@@ -8,12 +8,12 @@
  *    (or set of all tests).
  *
  * Flow parameters:
- *   EXTRA_REPO                        Repository with additional packages
+ *   EXTRA_REPO                        Deprecated. Repository with additional packages
  *   BOOTSTRAP_EXTRA_REPO_PARAMS       List of extra repos and related parameters injected on salt bootstrap stage:
  *                                     repo 1, repo priority 1, repo pin 1; repo 2, repo priority 2, repo pin 2
  *   REPO_URL                          URL to temporary repository with tested packages
- *   EXTRA_REPO_PIN                    Pin string for extra repo - eg "origin hostname.local"
- *   EXTRA_REPO_PRIORITY               Repo priority
+ *   EXTRA_REPO_PIN                    Deprecated. Pin string for extra repo - eg "origin hostname.local"
+ *   EXTRA_REPO_PRIORITY               Deprecated. Repo priority
  *   FAIL_ON_TESTS                     Whether to fail build on tests failures or not
  *   FORMULA_PKG_REVISION              Formulas release to deploy with (stable, testing or nightly)
  *   HEAT_STACK_ZONE                   VM availability zone
@@ -72,7 +72,11 @@ if (STACK_TYPE != 'heat' ) {
 
 node(slave_node) {
     def project = PROJECT
-    def extra_repo = EXTRA_REPO
+    // EXTRA_REPO_* parameters are deprecated in favor of BOOTSTRAP_EXTRA_REPO_PARAMS
+    def extra_repo
+    if (common.validInputParam('EXTRA_REPO')) {
+        extra_repo = EXTRA_REPO
+    }
     def testrail = true
     def test_milestone = ''
     def stack_deploy_job = "deploy-${STACK_TYPE}-${TEST_MODEL}"
@@ -135,12 +139,18 @@ node(slave_node) {
         if (common.validInputParam('BOOTSTRAP_EXTRA_REPO_PARAMS')) {
             bootstrap_extra_repo_params = BOOTSTRAP_EXTRA_REPO_PARAMS
         }
-        // Deprecated, BOOTSTRAP_EXTRA_REPO_PARAMS should be used instead
-        // Setting extra repo
+        // Setting extra repo is deprecated, BOOTSTRAP_EXTRA_REPO_PARAMS should be used instead
         if (extra_repo) {
             // by default pin to fqdn of extra repo host
-            def extra_repo_pin = EXTRA_REPO_PIN ?: "origin ${extra_repo.tokenize('/')[1]}"
-            def extra_repo_priority = EXTRA_REPO_PRIORITY ?: '1200'
+            def extra_repo_pin = "origin ${extra_repo.tokenize('/')[1]}"
+            if (common.validInputParam('EXTRA_REPO_PIN')) {
+                extra_repo_pin = EXTRA_REPO_PIN
+            }
+            def extra_repo_priority = '1200'
+            if (common.validInputParam('EXTRA_REPO_PRIORITY')) {
+                extra_repo_priority = EXTRA_REPO_PRIORITY
+            }
+
             def extra_repo_params = ["linux_system_repo: ${extra_repo}",
                                      "linux_system_repo_priority: ${extra_repo_priority}",
                                      "linux_system_repo_pin: ${extra_repo_pin}",]
