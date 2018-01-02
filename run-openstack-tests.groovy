@@ -10,6 +10,7 @@
  *    responsible for results check and upload to testrail
  *
  * Expected parameters:
+ *   LOCAL_TEMPEST_IMAGE          Path to docker image tar archive
  *   SALT_MASTER_URL              URL of Salt master
  *   SALT_MASTER_CREDENTIALS      Credentials to the Salt API
  *   TEST_TEMPEST_IMAGE           Docker image to run tempest
@@ -87,6 +88,10 @@ node(slave_node) {
 
         if (common.checkContains('TEST_DOCKER_INSTALL', 'true')) {
             test.install_docker(saltMaster, TEST_TEMPEST_TARGET)
+        }
+
+        if (common.validInputParam('LOCAL_TEMPEST_IMAGE')) {
+            salt.cmdRun(saltMaster, TEST_TEMPEST_TARGET, "docker load --input ${LOCAL_TEMPEST_IMAGE}", true, null, false)
         }
 
         // TODO: implement stepler testing from this pipeline
