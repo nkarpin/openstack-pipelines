@@ -138,7 +138,7 @@ def snapshotPackages(server, snapshot, packagesList) {
 def snapshotCreate(server, repo, packageRefs = null) {
     def now = new Date()
     def ts = now.format('yyyyMMddHHmmss', TimeZone.getTimeZone('UTC'))
-    def snapshot = "${repo}-${ts}-oscc-dev"
+    def snapshot = "os-salt-formulas-${ts}-oscc-dev"
 
     if (packageRefs) {
         String listString = packageRefs.join('\",\"')
