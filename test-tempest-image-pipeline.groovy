@@ -185,6 +185,9 @@ node('oscore-testing') {
         if (built_image) {
             sh("docker rmi -f ${image_full_name}")
         }
+        dir(image_short_name) {
+            deleteDir()
+        }
         if (common.validInputParam('STACK_DELETE') && STACK_DELETE.toBoolean() == true) {
             try {
                 if (!stack_name){
