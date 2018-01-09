@@ -2,6 +2,7 @@
  * DEPLOY_JOB_NAME              Job name to deploy environmnets are going to be used for testes
  * DISTRIBUTION                 Distribution name for published repo. For example: dev-os-salt-formulas
  * COMPONENTS                   Components for repo. For example: salt
+ * OPENSTACK_COMPONENTS_LIST    OpenStack related components list. For example: 'nova,cinder,glance,keystone,horizon,neutron,designate,heat,ironic,barbican'
  * prefixes                     Prefix packages to be published on the repo.  External storage can be passed with prefix for
  *                              example:
  *                                      def prefixes = ['oscc-dev', 's3:aptcdn:oscc-dev']
@@ -231,7 +232,7 @@ node('python'){
                     testBuilds["${release}"] = build job: "${DEPLOY_JOB_NAME}-${release}", propagate: false, parameters: [
                         [$class: 'StringParameterValue', name: 'BOOTSTRAP_EXTRA_REPO_PARAMS', value: "deb [arch=amd64] http://${tmp_repo_node_name}/oscc-dev ${distribution} ${components},1300,release n=${distribution}"],
                         [$class: 'StringParameterValue', name: 'FORMULA_PKG_REVISION', value: 'stable'],
-                        [$class: 'BooleanParameterValue', name: 'STACK_DELETE', value: STACK_DELETE],
+                        [$class: 'BooleanParameterValue', name: 'STACK_DELETE', value: STACK_DELETE.toBoolean()],
                         [$class: 'StringParameterValue', name: 'STACK_RECLASS_ADDRESS', value: STACK_RECLASS_ADDRESS],
                         [$class: 'StringParameterValue', name: 'STACK_RECLASS_BRANCH', value: "stable/${release}"],
                     ]
