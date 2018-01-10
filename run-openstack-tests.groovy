@@ -57,7 +57,7 @@ node(slave_node) {
     def test_model = ''
     def venv = "${env.WORKSPACE}/venv"
     def test_tempest_concurrency = '0'
-    def test_tempest_set = 'full'
+    def test_tempest_set = ''
     def use_pepper = true
     if (common.validInputParam('USE_PEPPER')){
         use_pepper = USE_PEPPER.toBoolean()
@@ -73,6 +73,17 @@ node(slave_node) {
             } else {
                 error('WHEN UPLOADING RESULTS TO TESTRAIL TEST_MILESTONE AND TEST_MODEL MUST BE SET')
             }
+        }
+
+        if (common.validInputParam('TEST_TEMPEST_SET')) {
+            test_tempest_set = TEST_TEMPEST_SET
+            common.infoMsg('TEST_TEMPEST_SET is set, TEST_TEMPEST_PATTERN parameter will be ignored')
+        } else if (common.validInputParam('TEST_TEMPEST_PATTERN')) {
+            test_tempest_pattern = TEST_TEMPEST_PATTERN
+            common.infoMsg('TEST_TEMPEST_PATTERN is set, TEST_TEMPEST_CONCURRENCY and TEST_TEMPEST_SET parameters will be ignored')
+        } else {
+            test_tempest_set = 'smoke'
+            common.infoMsg('Not TEST_TEMPEST_PATTERN, nor TEST_TEMPEST_SET parameter is set, smoke tempest run will be executed')
         }
 
         if (common.validInputParam('TEST_TEMPEST_CONCURRENCY')) {
@@ -98,14 +109,6 @@ node(slave_node) {
 
         // TODO: implement stepler testing from this pipeline
         stage('Run OpenStack tests') {
-            if (common.validInputParam('TEST_TEMPEST_SET')) {
-                test_tempest_set = TEST_TEMPEST_SET
-                common.infoMsg('TEST_TEMPEST_SET is set, TEST_TEMPEST_PATTERN parameter will be ignored')
-            } else if (common.validInputParam('TEST_TEMPEST_PATTERN')) {
-                test_tempest_pattern = TEST_TEMPEST_PATTERN
-                common.infoMsg('TEST_TEMPEST_PATTERN is set, TEST_TEMPEST_CONCURRENCY and TEST_TEMPEST_SET parameters will be ignored')
-            }
-
             test.runTempestTests(saltMaster, TEST_TEMPEST_IMAGE,
                                              TEST_TEMPEST_TARGET,
                                              test_tempest_pattern,
