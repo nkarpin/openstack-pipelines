@@ -237,7 +237,7 @@ node(slave_node) {
                 [$class: 'StringParameterValue', name: 'SALT_MASTER_URL', value: salt_master_url],
                 [$class: 'StringParameterValue', name: 'TEST_TEMPEST_CONF', value: TEST_TEMPEST_CONF],
                 [$class: 'StringParameterValue', name: 'TEST_TEMPEST_TARGET', value: TEST_TEMPEST_TARGET],
-                [$class: 'StringParameterValue', name: 'TEST_TEMPEST_PATTERN', value: 'set=smoke'],
+                [$class: 'StringParameterValue', name: 'TEST_TEMPEST_PATTERN', value: 'set=smoke --concurrency 2'],
                 [$class: 'BooleanParameterValue', name: 'TESTRAIL', value: false],
                 [$class: 'BooleanParameterValue', name: 'USE_PEPPER', value: use_pepper],
                 [$class: 'StringParameterValue', name: 'PROJECT', value: 'smoke'],
