@@ -1,13 +1,15 @@
 def common = new com.mirantis.mk.Common()
 
-project_list = ['nova', 'cinder', 'ironic', 'keystone', 'keystonemiddleware', 'keystoneauth',
-                'glance', 'glance_store', 'neutron', 'heat', 'barbican', 'designate',
-                'octavia', 'castellan', 'python-keystoneclient', 'python-openstackclient',
-                'oslo.utils', 'oslo.config', 'oslo.log', 'oslo.service', 'oslo.messaging',
-                'python-novaclient', 'python-neutronclient', 'horizon', 'python-glanceclient',
-                'python-cinderclient', 'python-heatclient', 'python-ironicclient',
-                'python-barbicanclient', 'python-designateclient', 'python-monascaclient'
-                ]
+project_list = ['barbican', 'castellan', 'cinder', 'designate', 'glance', 'glance_store',
+                'heat', 'horizon', 'ironic', 'keystone', 'keystoneauth', 'keystonemiddleware',
+                'neutron', 'neutron-fwaas', 'neutron-lbaas', 'neutron-lib', 'neutron-vpnaas',
+                'nova', 'octavia', 'oslo.cache', 'oslo.concurrency', 'oslo.config', 'oslo.context',
+                'oslo.db', 'oslo.i18n', 'oslo.log', 'oslo.messaging', 'oslo.middleware', 'oslo.policy',
+                'oslo.privsep', 'oslo.rootwrap', 'oslo.serialization', 'oslo.service', 'oslo.utils',
+                'oslo.versionedobjects', 'python-barbicanclient', 'python-ceilometerclient',
+                'python-cinderclient', 'python-designateclient', 'python-glanceclient', 'python-heatclient',
+                'python-ironicclient', 'python-keystoneclient', 'python-monascaclient', 'python-neutronclient',
+                'python-novaclient', 'python-octaviaclient', 'python-openstackclient', 'python-swiftclient']
 
 def run_parallel_scans(project_list=[], builds=[:]) {
     def project_bandit_test = [:]
